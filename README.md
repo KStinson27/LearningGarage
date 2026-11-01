@@ -1,6 +1,7 @@
 # 🏁 Learning Garage
 
-A learning app for toddlers who love cars and monster trucks. It runs in Safari
+A learning app for toddlers who love cars and monster trucks, styled as a
+sunny road trip: every section is a road sign, and trucks drive along the road. It runs in Safari
 on an iPad, installs to the home screen like a real app, and works offline.
 
 Everything is spoken aloud, the buttons are huge, and there are no "wrong"
@@ -65,14 +66,17 @@ All the words, vehicles and phrases are in **`js/data.js`**. Edit that file to:
 - change the ABC words,
 - change what each shape or color says.
 
-After changing files, bump `VERSION` in `sw.js` (for example to `learning-garage-v2`) so
+After changing files, bump `VERSION` in `sw.js` (for example from `learning-garage-v2` to `learning-garage-v3`) so
 installed copies update. Close and reopen the app on the iPad to load the new version.
 
 ## How it's built
 - Plain HTML, CSS and JavaScript with no frameworks and no build step.
 - `js/audio.js` makes every sound effect in code (Web Audio) and speaks with
   the iPad's built-in voice (Speech Synthesis), so there are no audio files.
-- `js/art.js` draws the monster truck, cars and shapes as SVG so they can be any color.
+- `js/art.js` draws the monster truck, cars, shapes, road signs and scenery as
+  SVG, so vehicles can be any color.
+- The font is [Fredoka](https://github.com/hafontia/Fredoka-One), bundled in
+  `fonts/` so it works offline (SIL Open Font License, see `fonts/OFL.txt`).
 - `sw.js` and `manifest.webmanifest` make it an installable, offline-capable app.
 - Sticker progress is saved on the device (`localStorage`). To reset it, go to
   the Stickers screen and hold the small "Grown-ups" button for 3 seconds.

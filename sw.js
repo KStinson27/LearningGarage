@@ -1,6 +1,6 @@
 // Offline support: serve from cache, refresh the cache in the background.
 // Bump VERSION when you change files so iPads pick up the update.
-const VERSION = 'learning-garage-v1';
+const VERSION = 'learning-garage-v2';
 const ASSETS = [
   './',
   'index.html',
@@ -14,6 +14,7 @@ const ASSETS = [
   'icons/icon-192.png',
   'icons/icon-512.png',
   'icons/apple-touch-icon.png',
+  'fonts/fredoka-latin.woff2',
 ];
 
 self.addEventListener('install', event => {

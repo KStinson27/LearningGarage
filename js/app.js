@@ -77,10 +77,23 @@
     return h('span', { class: 'art art-emoji' }, v.emoji);
   }
 
+  // A green highway sign with a white inner border.
+  function highwaySign(text, cls = '') {
+    return h('div', { class: `hwy ${cls}` }, h('h1', { class: 'hwy-inner' }, text));
+  }
+
   function header(title, ...right) {
-    const home = h('button', { class: 'btn-home press', 'aria-label': 'Home' }, '🏠');
+    const home = h('button', { class: 'btn-home press', 'aria-label': 'Home', html: Art.homeSign() });
     tap(home, () => { Sound.sfx('pop'); go('home'); });
-    return h('header', { class: 'bar' }, home, h('h1', {}, title), h('div', { class: 'bar-right' }, ...right));
+    return h('header', { class: 'bar' },
+      home,
+      h('div', { class: 'bar-title' }, highwaySign(title, 'hwy-small')),
+      h('div', { class: 'bar-right' }, ...right));
+  }
+
+  function stickerCount() {
+    const data = Store.load();
+    return VEHICLES.filter(v => data[v.id]).length;
   }
 
   function confetti(n = 26) {
@@ -136,8 +149,10 @@
   function splash() {
     let started = false;
     const el = h('div', { class: 'screen splash' },
-      h('div', { class: 'splash-truck', html: Art.monster('#e53935') }),
-      h('h1', { class: 'logo' }, 'Learning Garage'),
+      h('div', { class: 'splash-sign' },
+        highwaySign('Learning Garage', 'hwy-big'),
+        h('div', { class: 'posts' }, h('span'), h('span'))),
+      h('div', { class: 'splash-truck', html: Art.monster('#ff7043') }),
       h('button', { class: 'btn-big go-btn press' }, '▶ Start your engines!'));
     tap(el, () => {
       if (started) return;
@@ -151,27 +166,48 @@
   }
 
   // ---- home ----------------------------------------------------------------
+  // Each section is a road sign on a post.
   const TOPICS = [
-    { id: 'garage', label: 'Trucks', bg: '#ffcdd2', art: () => h('span', { class: 'art art-svg', html: Art.monster('#e53935') }), intro: 'Trucks and cars!' },
-    { id: 'numbers', label: 'Numbers', bg: '#bbdefb', art: () => h('span', { class: 'tt-text' }, '123'), intro: 'Numbers!' },
-    { id: 'shapes', label: 'Shapes', bg: '#fff9c4', art: () => h('span', { class: 'art art-svg', html: Art.shape('star', '#fdd835') }), intro: 'Shapes!' },
-    { id: 'colors', label: 'Colors', bg: '#c8e6c9', art: () => h('span', { class: 'art art-svg', html: Art.car('#43a047') }), intro: 'Colors!' },
-    { id: 'abc', label: 'ABC', bg: '#e1bee7', art: () => h('span', { class: 'tt-text' }, 'ABC'), intro: 'A, B, C!' },
-    { id: 'stickers', label: 'Stickers', bg: '#ffe0b2', art: () => h('span', { class: 'art art-emoji' }, '⭐'), intro: 'Your stickers!' },
+    { id: 'garage', label: 'Trucks', intro: 'Trucks and cars!' },
+    { id: 'numbers', label: 'Numbers', intro: 'Numbers!' },
+    { id: 'shapes', label: 'Shapes', intro: 'Shapes!' },
+    { id: 'colors', label: 'Colors', intro: 'Colors!' },
+    { id: 'abc', label: 'ABC', intro: 'A, B, C!' },
+    { id: 'stickers', label: 'Stickers', intro: 'Your stickers!' },
   ];
 
   function home() {
-    const grid = h('main', { class: 'home' });
+    const signs = h('main', { class: 'home' });
     TOPICS.forEach(t => {
-      const b = h('button', { class: 'topic-tile press', style: `background:${t.bg}` },
-        h('span', { class: 'tt-art' }, t.art()),
-        h('span', { class: 'tt-label' }, t.label));
+      const b = h('button', { class: 'road-sign press', 'aria-label': t.label },
+        h('span', { class: 'rs-sign', html: Art.sign(t.id) }),
+        h('span', { class: 'rs-post' }),
+        h('span', { class: 'rs-label' }, t.label));
       tap(b, () => { Sound.sfx('pop'); go(t.id); say(t.intro); });
-      grid.append(b);
+      signs.append(b);
     });
-    return h('div', { class: 'screen' },
-      h('header', { class: 'bar' }, h('h1', { class: 'logo-small' }, '🏁 Learning Garage')),
-      grid);
+
+    const counter = h('button', { class: 'sticker-pill press', 'aria-label': 'Stickers' },
+      h('span', { html: Art.star(36) }), `${stickerCount()} / ${VEHICLES.length}`);
+    tap(counter, () => { Sound.sfx('pop'); go('stickers'); });
+
+    // Vehicles driving along the road. Tap them for a sound!
+    const traffic = h('div', { class: 'traffic' });
+    [
+      { art: Art.car('#1e88e5'), cls: 'drive-car', sfx: 'honk', say: 'Beep beep!' },
+      { art: Art.monster('#ff7043'), cls: 'drive-monster', sfx: 'vroom', say: 'Vroom vroom! Monster truck!' },
+    ].forEach(v => {
+      const el = h('button', { class: `traffic-vehicle ${v.cls}`, 'aria-label': 'vehicle', html: v.art });
+      tap(el, () => { Sound.sfx(v.sfx); say(v.say); restart(el, 'hop'); });
+      traffic.append(el);
+    });
+
+    return h('div', { class: 'screen home-screen' },
+      h('header', { class: 'home-header' },
+        h('div', { class: 'home-title' }, highwaySign('Learning Garage'), h('div', { class: 'posts' }, h('span'), h('span'))),
+        counter),
+      signs,
+      traffic);
   }
 
   // ---- generic "Learn" view: big stage on top, tappable picture grid below --
@@ -522,6 +558,9 @@
   if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
     window.addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(() => {}));
   }
+
+  // The sky, hills and road sit behind every screen.
+  document.body.prepend(h('div', { class: 'scenery', html: Art.scenery() }));
 
   go('splash');
 })();
