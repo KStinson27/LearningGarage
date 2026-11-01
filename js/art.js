@@ -90,6 +90,124 @@ window.Art = (() => {
     </svg>`;
   }
 
+  // ---- work trucks (viewBox 260 x 130): tow, dump, mixer, garbage -----------
+  function smallWheel(x) {
+    return `<g transform="translate(${x} 106)"><g class="spin">
+      <circle r="20" fill="#1c1c1c"/>
+      <circle r="18" fill="none" stroke="#333" stroke-width="3" stroke-dasharray="4 3"/>
+      <circle r="11" fill="#cfd8dc" stroke="${S}" stroke-width="1.5"/>
+      <path d="M0-9V9M-7.8-4.5L7.8 4.5M-7.8 4.5L7.8-4.5" stroke="#90a4ae" stroke-width="3" stroke-linecap="round"/>
+      <circle r="3.5" fill="#eceff1" stroke="#455a64" stroke-width="1.5"/>
+    </g></g>`;
+  }
+
+  const BACKS = {
+    dump: c => `
+      <path d="M96 30 L250 22 L244 92 L102 92Z" fill="${c}" stroke="${S}" stroke-width="3" stroke-linejoin="round"/>
+      <path d="M132 30 L136 92 M172 27 L174 92 M212 25 L210 92" stroke="${S}" stroke-width="2" opacity=".35"/>
+      <path d="M100 40 L248 32" stroke="#fff" stroke-width="4" opacity=".45" stroke-linecap="round"/>
+      <path d="M118 24 Q150 4 186 18 Q214 6 238 20" fill="#8d6e63" stroke="${S}" stroke-width="2.5"/>`,
+    tow: c => `
+      <rect x="96" y="70" width="150" height="22" rx="4" fill="${c}" stroke="${S}" stroke-width="3"/>
+      <path d="M150 70 L232 22" stroke="#455a64" stroke-width="10" stroke-linecap="round"/>
+      <path d="M150 70 L232 22" stroke="#90a4ae" stroke-width="4" stroke-linecap="round"/>
+      <path d="M232 22 L232 60" stroke="#263238" stroke-width="3" stroke-dasharray="4 3"/>
+      <path d="M232 60 q0 12 -10 10" fill="none" stroke="#263238" stroke-width="5" stroke-linecap="round"/>
+      <rect x="140" y="56" width="22" height="16" rx="3" fill="#455a64" stroke="${S}" stroke-width="2"/>
+      <rect x="104" y="40" width="10" height="30" rx="2" fill="#ffca28" stroke="${S}" stroke-width="2"/>`,
+    mixer: c => `
+      <rect x="96" y="78" width="150" height="14" rx="3" fill="#546e7a" stroke="${S}" stroke-width="2.5"/>
+      <g transform="rotate(-10 172 52)">
+        <ellipse cx="172" cy="52" rx="74" ry="34" fill="#eceff1" stroke="${S}" stroke-width="3"/>
+        <g class="drum-stripes"><path d="M110 30 L140 80 M140 22 L172 86 M172 18 L204 86 M204 22 L232 78" stroke="${c}" stroke-width="10" stroke-linecap="round" opacity=".85"/></g>
+        <ellipse cx="246" cy="52" rx="6" ry="16" fill="#90a4ae" stroke="${S}" stroke-width="2"/>
+      </g>
+      <path d="M108 78 L120 58 M228 78 L218 60" stroke="#455a64" stroke-width="6" stroke-linecap="round"/>`,
+    garbage: c => `
+      <path d="M96 22 L242 22 Q250 22 250 30 L250 92 L96 92Z" fill="${c}" stroke="${S}" stroke-width="3" stroke-linejoin="round"/>
+      <path d="M104 34 L240 34 M104 50 L240 50 M104 66 L240 66" stroke="${S}" stroke-width="2" opacity=".3"/>
+      <path d="M100 30 L244 30" stroke="#fff" stroke-width="4" opacity=".4" stroke-linecap="round"/>
+      <rect x="120" y="58" width="26" height="30" rx="3" fill="#455a64" stroke="${S}" stroke-width="2"/>
+      <path d="M133 58 L150 40 L170 40" fill="none" stroke="#90a4ae" stroke-width="6" stroke-linecap="round"/>
+      <rect x="166" y="34" width="20" height="26" rx="2" fill="#1e88e5" stroke="${S}" stroke-width="2"/>`,
+  };
+
+  function workTruck(kind, color = '#fb8c00') {
+    const cab = kind === 'garbage' ? '#fafafa' : kind === 'mixer' ? '#fafafa' : color;
+    return `<svg viewBox="0 0 260 130" data-wheel-r="20" data-pivot="130 100" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+      <ellipse cx="130" cy="125" rx="120" ry="5" fill="#000" opacity=".2"/>
+      <g class="body">
+      <rect x="92" y="6" width="6" height="40" rx="2" fill="#90a4ae" stroke="${S}" stroke-width="2"/>
+      <rect x="14" y="90" width="236" height="12" rx="3" fill="#37474f" stroke="${S}" stroke-width="2"/>
+      ${BACKS[kind](color)}
+      <path d="M12 92 L12 58 Q12 50 20 48 L34 46 L46 24 Q50 18 58 18 L84 18 Q92 18 92 26 L92 92Z" fill="${cab}" stroke="${S}" stroke-width="3" stroke-linejoin="round"/>
+      <path d="M12 80 L92 80 L92 92 L12 92Z" fill="#000" opacity=".15"/>
+      <path d="M42 46 L52 26 L84 26 L84 46Z" fill="#9fd8f5" stroke="${S}" stroke-width="2.5" stroke-linejoin="round"/>
+      <path d="M52 44 L62 28 L67 28 L57 44Z" fill="#fff" opacity=".6"/>
+      <path d="M40 50 L40 90" stroke="${S}" stroke-width="2" opacity=".4"/>
+      <rect x="60" y="54" width="12" height="3.5" rx="1.7" fill="${S}" opacity=".5"/>
+      <rect x="12" y="60" width="7" height="10" rx="2" fill="#fff59d" stroke="${S}" stroke-width="1.5"/>
+      <rect x="6" y="82" width="18" height="10" rx="3" fill="#b0bec5" stroke="${S}" stroke-width="1.5"/>
+      <rect x="86" y="10" width="10" height="6" rx="2" fill="#ffb300" stroke="${S}" stroke-width="1.5"/>
+      <path d="M26 104 A24 24 0 0 1 74 104Z M148 104 A24 24 0 0 1 196 104Z M184 104 A24 24 0 0 1 232 104Z" fill="${S}"/>
+      </g>
+      ${smallWheel(50)}${smallWheel(172)}${smallWheel(208)}
+    </svg>`;
+  }
+
+  // ---- big car diagram for "Car Parts" (viewBox 420 x 230) --------------------
+  // Every tappable part has data-part="<id>" matching DATA.PARTS.
+  function carDiagram(color = '#1e88e5') {
+    const wheel = x => `<g data-part="wheel" class="hot"><g transform="translate(${x} 176)"><g class="spin">
+        <circle r="38" fill="#1c1c1c"/><circle r="34" fill="none" stroke="#333" stroke-width="6" stroke-dasharray="7 5"/>
+        <circle r="22" fill="#cfd8dc" stroke="${S}" stroke-width="2.5"/>
+        <path d="M0-18V18M-15.6-9L15.6 9M-15.6 9L15.6-9" stroke="#90a4ae" stroke-width="6" stroke-linecap="round"/>
+        <circle r="7" fill="#eceff1" stroke="#455a64" stroke-width="2"/></g></g></g>`;
+    return `<svg class="car-diagram" viewBox="0 0 420 230" data-wheel-r="38" data-pivot="200 168" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+      <polygon class="beam" points="30,122 -200,90 -200,190" fill="#fff59d"/>
+      <ellipse cx="200" cy="216" rx="185" ry="9" fill="#000" opacity=".18"/>
+      <g class="smoke"><circle cx="404" cy="168" r="9"/><circle cx="414" cy="160" r="12"/><circle cx="424" cy="150" r="15"/></g>
+      <g class="body">
+        <path d="M24 148 Q20 116 52 108 L116 96 L160 48 Q172 36 192 36 L276 36 Q298 36 310 52 L340 92 Q380 100 380 128 L380 160 Q380 176 364 176 L40 176 Q24 176 24 160 Z"
+          fill="${color}" stroke="${S}" stroke-width="4" stroke-linejoin="round"/>
+        <path d="M24 152 L380 148 L380 160 Q380 176 364 176 L40 176 Q24 176 24 160Z" fill="#000" opacity=".18"/>
+        <path data-part="hood" class="zone" d="M28 126 Q30 112 52 108 L116 96 L130 98 Q124 112 126 126Z"/>
+        <path data-part="door" class="zone" d="M130 100 L232 100 L232 170 L134 170 Q122 136 130 100Z"/>
+        <path data-part="trunk" class="zone" d="M318 98 L340 92 Q376 100 378 126 L320 126Z"/>
+        <path d="M232 100 L232 170 M130 100 Q122 136 134 170" stroke="${S}" stroke-width="2.5" fill="none" opacity=".45"/>
+        <path d="M44 120 L120 106 M240 104 L370 112" stroke="#fff" stroke-width="5" opacity=".45" stroke-linecap="round"/>
+        <path data-part="windshield" class="hot glass" d="M118 98 L162 46 L176 46 L134 98Z" fill="#c7ecff" stroke="${S}" stroke-width="2.5" stroke-linejoin="round"/>
+        <path class="wiper" d="M128 97 L150 70" stroke="#263238" stroke-width="4" stroke-linecap="round"/>
+        <path data-part="window" class="hot glass" d="M138 96 L178 50 Q182 46 190 46 L224 46 L224 96Z M238 46 L276 46 Q290 46 298 58 L322 96 L238 96Z" fill="#9fd8f5" stroke="${S}" stroke-width="3" stroke-linejoin="round"/>
+        <g data-part="seat" class="hot"><path d="M206 96 L210 64 Q212 56 220 57 L222 96Z M300 96 L296 70 Q296 64 302 64 L306 96Z" fill="#455a64" stroke="${S}" stroke-width="2"/><rect x="211" y="48" width="11" height="9" rx="3" fill="#455a64" stroke="${S}" stroke-width="2"/></g>
+        <g data-part="steering-wheel" class="hot"><g class="steer"><ellipse cx="190" cy="76" rx="6" ry="15" transform="rotate(-24 190 76)" fill="none" stroke="#263238" stroke-width="5"/><path d="M190 76 L204 92" stroke="#263238" stroke-width="5" stroke-linecap="round"/></g></g>
+        <path d="M150 88 L170 62 L178 62 L158 88Z M250 90 L262 56 L268 56 L256 90Z" fill="#fff" opacity=".5" pointer-events="none"/>
+        <path data-part="mirror" class="hot" d="M138 92 L120 88 Q114 88 114 94 L114 102 L138 102Z" fill="${color}" stroke="${S}" stroke-width="2.5"/>
+        <rect data-part="door-handle" class="hot" x="190" y="112" width="26" height="7" rx="3.5" fill="#cfd8dc" stroke="${S}" stroke-width="2"/>
+        <rect data-part="door-handle" class="hot" x="282" y="112" width="26" height="7" rx="3.5" fill="#cfd8dc" stroke="${S}" stroke-width="2"/>
+        <rect data-part="gas-cap" class="hot" x="330" y="106" width="20" height="14" rx="4" fill="${color}" stroke="${S}" stroke-width="2.5"/>
+        <path data-part="headlight" class="hot headlight" d="M26 128 Q28 114 52 112 L60 128 Q44 136 26 128Z" fill="#fff59d" stroke="${S}" stroke-width="2.5"/>
+        <rect data-part="taillight" class="hot taillight" x="368" y="114" width="12" height="24" rx="3" fill="#ff5252" stroke="${S}" stroke-width="2"/>
+        <rect data-part="bumper" class="hot" x="16" y="146" width="40" height="18" rx="6" fill="#cfd8dc" stroke="${S}" stroke-width="2.5"/>
+        <rect data-part="bumper" class="hot" x="364" y="146" width="22" height="18" rx="6" fill="#cfd8dc" stroke="${S}" stroke-width="2.5"/>
+        <path d="M56 176 A48 48 0 0 1 152 176Z M252 176 A48 48 0 0 1 348 176Z" fill="${S}"/>
+      </g>
+      <rect data-part="exhaust" class="hot" x="350" y="170" width="52" height="12" rx="5" fill="#90a4ae" stroke="${S}" stroke-width="2.5"/>
+      ${wheel(104)}${wheel(300)}
+    </svg>`;
+  }
+
+  // Traffic light for "Stop & Go" (viewBox 60 x 200). Light state via CSS class.
+  function trafficLight() {
+    return `<svg viewBox="0 0 60 200" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+      <rect x="25" y="96" width="10" height="104" fill="#78909c"/>
+      <rect x="4" y="2" width="52" height="100" rx="14" fill="#263238" stroke="${INK}" stroke-width="3"/>
+      <circle class="tl-red" cx="30" cy="24" r="12"/>
+      <circle class="tl-yellow" cx="30" cy="52" r="12"/>
+      <circle class="tl-green" cx="30" cy="80" r="12"/>
+    </svg>`;
+  }
+
   // ---- shapes ----------------------------------------------------------------
   function starPoints(cx, cy, R, r, n = 5) {
     const pts = [];
@@ -110,6 +228,7 @@ window.Art = (() => {
     heart: c => `<path d="M50 88 C12 62 4 34 24 20 C38 10 50 20 50 32 C50 20 62 10 76 20 C96 34 88 62 50 88Z" fill="${c}"/>`,
     oval: c => `<ellipse cx="50" cy="50" rx="45" ry="30" fill="${c}"/>`,
     diamond: c => `<polygon points="50,4 92,50 50,96 8,50" fill="${c}"/>`,
+    octagon: c => `<polygon points="32,6 68,6 94,32 94,68 68,94 32,94 6,68 6,32" fill="${c}"/>`,
   };
 
   function shape(id, color) {
@@ -135,11 +254,29 @@ window.Art = (() => {
       <circle cx="82" cy="82" r="64" fill="none" stroke="#fff" stroke-width="4"/>
       <text x="82" y="100" text-anchor="middle" font-family="Fredoka, sans-serif" font-weight="700" font-size="54" fill="#fff">123</text>`,
     shapes: `
+      <rect x="10" y="10" width="144" height="144" rx="16" fill="#fff" stroke="${INK}" stroke-width="6"/>
+      <rect x="20" y="20" width="124" height="124" rx="10" fill="none" stroke="${INK}" stroke-width="3"/>
+      <circle cx="56" cy="62" r="22" fill="#e53935" stroke="${INK}" stroke-width="3"/>
+      <polygon points="110,38 134,82 86,82" fill="#1e88e5" stroke="${INK}" stroke-width="3" stroke-linejoin="round"/>
+      <rect x="62" y="94" width="40" height="40" rx="4" fill="#43a047" stroke="${INK}" stroke-width="3"/>`,
+    parts: `
+      <rect x="10" y="10" width="144" height="144" rx="16" fill="#1e88e5" stroke="${INK}" stroke-width="6"/>
+      <rect x="20" y="20" width="124" height="124" rx="10" fill="none" stroke="#fff" stroke-width="4"/>
+      <circle cx="82" cy="82" r="44" fill="#fff"/>
+      <g transform="rotate(-40 82 82)"><path d="M70 50 a16 16 0 1 0 24 0 l-4 14 h-16 Z" fill="#1e88e5"/><rect x="74" y="62" width="16" height="56" rx="6" fill="#1e88e5"/></g>`,
+    sounds: `
+      <circle cx="82" cy="82" r="74" fill="#fb8c00" stroke="${INK}" stroke-width="6"/>
+      <circle cx="82" cy="82" r="64" fill="none" stroke="#fff" stroke-width="4"/>
+      <path d="M42 66 L62 66 L86 44 L86 120 L62 98 L42 98Z" fill="#fff" stroke-linejoin="round"/>
+      <path d="M98 64 Q110 82 98 100 M110 52 Q130 82 110 112" fill="none" stroke="#fff" stroke-width="7" stroke-linecap="round"/>`,
+    jobs: `
+      <polygon points="82,6 156,62 156,156 8,156 8,62" fill="#ffd600" stroke="${INK}" stroke-width="6" stroke-linejoin="round"/>
+      <polygon points="82,20 144,67 144,144 20,144 20,67" fill="none" stroke="${INK}" stroke-width="3" stroke-linejoin="round"/>
+      <text x="82" y="132" text-anchor="middle" font-family="Fredoka, sans-serif" font-weight="700" font-size="84" fill="${INK}">?</text>`,
+    stopgo: `
       <polygon points="52,8 112,8 156,52 156,112 112,156 52,156 8,112 8,52" fill="#e53935" stroke="${INK}" stroke-width="6" stroke-linejoin="round"/>
       <polygon points="56,18 108,18 146,56 146,108 108,146 56,146 18,108 18,56" fill="none" stroke="#fff" stroke-width="4" stroke-linejoin="round"/>
-      <circle cx="56" cy="64" r="20" fill="#fff"/>
-      <polygon points="110,42 132,82 88,82" fill="#fff"/>
-      <rect x="62" y="94" width="40" height="40" rx="4" fill="#fff"/>`,
+      <text x="82" y="100" text-anchor="middle" font-family="Fredoka, sans-serif" font-weight="700" font-size="44" fill="#fff">STOP</text>`,
     colors: `
       <rect x="50" y="2" width="64" height="160" rx="18" fill="#263238" stroke="${INK}" stroke-width="5"/>
       <path d="M50 30 L32 22 L32 46 L50 50Z M50 82 L32 74 L32 98 L50 102Z M50 132 L32 124 L32 148 L50 152Z M114 30 L132 22 L132 46 L114 50Z M114 82 L132 74 L132 98 L114 102Z M114 132 L132 124 L132 148 L114 152Z" fill="#37474f"/>
@@ -192,5 +329,5 @@ window.Art = (() => {
     </svg>`;
   }
 
-  return { car, monster, shape, sign, homeSign, star, scenery };
+  return { car, monster, workTruck, carDiagram, trafficLight, shape, sign, homeSign, star, scenery };
 })();

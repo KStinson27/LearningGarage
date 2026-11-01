@@ -9,17 +9,27 @@ buzzers. A miss just gets a gentle "That's blue. Find the red car!"
 
 ## What's inside
 
-| Section | Learn mode | Play mode |
-|---|---|---|
-| 🚚 **Trucks** | 23 vehicles. Tap one and it drives in, makes its sound (siren, honk, choo choo…) and says its name | – |
-| 🔢 **Numbers** | 1–10, each shown with that many vehicles and counted out loud | **Monster Truck Count**: tap each car, the monster truck jumps on it and crushes it while counting. It starts at 1–3 cars and slowly goes up to 10 |
-| ⭐ **Shapes** | 8 shapes with car-themed hints ("Round like a wheel!") | "Find the circle!" |
-| 🎨 **Colors** | Monster trucks in 10 colors | "Find the red car!" |
-| 🔤 **ABC** | A–Z, each with a vehicle-themed word ("M is for Monster truck!") | "Find the letter B!" |
-| 🏆 **Stickers** | A collection of vehicle stickers won while playing | – |
+**Learning about vehicles**
 
-Games start easy (2 choices) and add more choices as your child gets answers
-right. Every few wins earns a new vehicle sticker.
+| Section | What he does |
+|---|---|
+| 🚚 **Trucks** | 27 vehicles, including a tow truck, dump truck, cement mixer and garbage truck. Tap one and it drives in and plays its real sound, then the voice says a fact. Tap it again for the next fact. |
+| 🔧 **Car Parts** | A big car with 15 parts to tap. Some parts do something: headlights shine, the steering wheel honks the horn, the hood starts the engine, the exhaust puffs smoke, the wheels roll. **Play:** "Find the gas cap!" |
+| 🔊 **Sounds** | "Listen! Who makes this sound?" Hear a horn, train, siren or engine and pick the vehicle. |
+| ❓ **Who Helps?** | Little stories that teach what each vehicle is for: "This car broke down. Who can help?" (the tow truck). |
+| 🛑 **Stop & Go** | Drive a car down the road using the GO and STOP pedals. Green means go, yellow means slow down, red means stop. Stopping at red earns stars. |
+
+**The basics, car-themed**
+
+| Section | Learn | Play |
+|---|---|---|
+| 🔢 **Numbers** | 1–10 with that many vehicles | **Monster Truck Count**: the truck jumps and crushes each car he counts (4 cars at first, up to 10) |
+| ⭐ **Shapes** | 9 shapes ("A stop sign has eight sides!") | "Find the octagon!" |
+| 🎨 **Colors** | Monster trucks in 10 colors | "Find the red car!" |
+| 🔤 **ABC** | A–Z ("T is for Tow truck!") | "Find the letter T!" |
+| 🏆 **Stickers** | A collection of vehicle stickers | – |
+
+The "Find it" games start with 3 choices and go up to 6 as he gets them right.
 
 ## Put it on the iPad
 
@@ -98,10 +108,26 @@ Only new or changed lines are recorded. To try a different voice, add for exampl
 `--voice af_bella` or `--voice am_michael`. Other female voices start with `af_`
 and other male voices with `am_`.
 
+## Vehicle sounds
+
+Horns, sirens and engines are **real recordings**, not a person saying "beep beep".
+They are listed in `tools/sounds.json` with their source and license, and built
+into `sounds/` by `python3 tools/make_sounds.py` (needs ffmpeg). Credits are in
+`sounds/CREDITS.md`.
+
+Any sound without a recording yet plays a synthesized stand-in. Good free
+sources (CC0, no credit needed) are [BigSoundBank](https://bigsoundbank.com) and
+[Freesound](https://freesound.org) (filter by the CC0 license). To add one, list it in
+`tools/sounds.json` under the sound id the app uses, then re-run the tool. The ids are:
+`horn-car`, `horn-truck`, `airhorn`, `siren-police`, `siren-fire`, `siren-ambulance`,
+`motorcycle`, `tractor`, `airplane`, `helicopter`, `rocket`, `boat`, `bike-bell`,
+`backup-beep`, `air-brakes` and `tire-screech`. `"url"` can also be a file on your computer.
+
 ## How it's built
 - Plain HTML, CSS and JavaScript with no frameworks and no build step.
-- `js/audio.js` makes every sound effect in code (Web Audio) and plays the
-  recorded voice clips. It falls back to the built-in voice for any line without a clip.
+- `js/audio.js` plays the recorded voice clips and real vehicle sounds. The
+  vehicle sound gets quieter while the voice talks. It falls back to the built-in
+  voice or a synthesized sound when a recording is missing.
 - `js/motion.js` is a small physics loop for vehicles. The wheels turn with the
   distance travelled, and the body rides a springy suspension: it tilts back when
   speeding up, dips when braking, bumps over the road and squishes on landing.
@@ -116,6 +142,7 @@ and other male voices with `am_`.
 ## Ideas for what's next
 - Record your own voice saying words (it means a lot to a toddler).
 - Add photos of his real toy trucks.
+- More Stop & Go: crosswalks, school zones, a railroad crossing.
 - A "build a monster truck" game: choose the wheels, color and stickers.
 - Matching and memory games, opposites (big/small, fast/slow), and sounds like
   "which truck says nee-naw?"

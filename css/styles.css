@@ -194,31 +194,31 @@ button:focus-visible { outline: 5px solid var(--blue); outline-offset: 3px; }
   flex: 1;
   min-height: 0;
   display: grid;
-  grid-template-columns: repeat(6, minmax(0, 1fr));
+  grid-template-columns: repeat(5, minmax(0, 1fr));
   align-content: center;
-  gap: 18px 12px;
+  gap: 14px 12px;
   padding: 8px clamp(12px, 3vw, 40px) calc(var(--scene-h) * .19);
 }
 @media (orientation: portrait) {
-  .home { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 28px 12px; }
+  .home { grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 22px 8px; }
   .sticker-pill { position: static; margin-top: 12px; align-self: center; }
   .home-header { flex-direction: column; align-items: center; }
-  .rs-sign { width: min(100%, 24vw); }
-  .rs-label { font-size: clamp(20px, 3.4vw, 30px); }
+  .rs-sign { width: min(100%, 17vw); }
+  .rs-label { font-size: clamp(14px, 2.6vw, 24px); padding: 2px 8px 3px; }
 }
 @media (orientation: landscape) and (max-width: 900px) {
   .sticker-pill { display: none; }
 }
 .road-sign { display: flex; flex-direction: column; align-items: center; min-width: 0; }
-.rs-sign { width: min(100%, clamp(96px, 14vw, 172px)); filter: drop-shadow(0 5px 0 rgba(31, 45, 51, .25)); }
+.rs-sign { width: min(100%, clamp(80px, 12vw, 150px), 17vh); filter: drop-shadow(0 5px 0 rgba(31, 45, 51, .25)); }
 .rs-sign svg { width: 100%; height: auto; display: block; }
-.rs-post { width: 12px; height: clamp(18px, 6vh, 60px); margin-top: -6px; background: var(--post); }
+.rs-post { width: 12px; height: clamp(12px, 3vh, 34px); margin-top: -6px; background: var(--post); }
 .rs-label {
   background: #fff;
   border: 3px solid var(--ink);
   border-radius: 14px;
   padding: 3px 14px 4px;
-  font-size: clamp(18px, 2.4vw, 28px);
+  font-size: clamp(16px, 2.1vw, 26px);
   font-weight: 700;
   white-space: nowrap;
   box-shadow: 0 4px 0 rgba(31, 45, 51, .2);
@@ -228,8 +228,8 @@ button:focus-visible { outline: 5px solid var(--blue); outline-offset: 3px; }
 .traffic { position: absolute; left: 0; right: 0; bottom: 0; height: 0; }
 .traffic-vehicle { position: absolute; left: 0; bottom: calc(var(--scene-h) * .045); will-change: transform; }
 .traffic-vehicle svg { width: 100%; height: auto; display: block; }
-.drive-car { width: calc(var(--scene-h) * .26); }
-.drive-monster { width: calc(var(--scene-h) * .3); bottom: calc(var(--scene-h) * .035); }
+.drive-car { width: min(calc(var(--scene-h) * .21), 26vw); }
+.drive-monster { width: min(calc(var(--scene-h) * .24), 30vw); bottom: calc(var(--scene-h) * .035); }
 /* Park traffic off screen until Motion (js/motion.js) starts driving it. */
 .traffic-vehicle { transform: translateX(-200vw); }
 
@@ -389,7 +389,7 @@ button:focus-visible { outline: 5px solid var(--blue); outline-offset: 3px; }
   grid-template-columns: repeat(2, 1fr);
   grid-auto-rows: 1fr;
 }
-.choices[data-n="3"] { grid-template-columns: repeat(3, 1fr); }
+.choices[data-n="3"], .choices[data-n="5"], .choices[data-n="6"] { grid-template-columns: repeat(3, 1fr); }
 @media (orientation: landscape) { .choices[data-n="4"] { grid-template-columns: repeat(4, 1fr); } }
 .choice {
   min-height: 0;
@@ -581,3 +581,92 @@ button:focus-visible { outline: 5px solid var(--blue); outline-offset: 3px; }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; }
 }
+
+/* ---- choices with a name under the picture ---- */
+.choices.named .choice { flex-direction: column; gap: 8px; font-size: clamp(90px, 19vmin, 210px); }
+.choices.named .choice .art { width: auto; height: auto; }
+.choices.named .choice .art-svg svg { width: 1.5em; height: auto; }
+.choice-name { font-size: clamp(18px, 2.8vw, 30px); font-weight: 700; }
+
+/* ---- Car Parts ---- */
+.parts { flex: 1; min-height: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px; padding: 0 16px 24px; }
+.part-label {
+  font-size: clamp(26px, 5vw, 50px); font-weight: 700; background: #fff; border: var(--edge);
+  border-radius: 20px; padding: 4px 28px 6px; box-shadow: var(--shadow); text-transform: capitalize;
+}
+.parts-car { width: min(96%, 1000px, 150vh); }
+.parts-car svg { width: 100%; height: auto; display: block; overflow: visible; }
+.car-diagram .hot, .car-diagram .zone { cursor: pointer; }
+.car-diagram .zone { fill: transparent; stroke: none; }
+.car-diagram .active { filter: drop-shadow(0 0 3px #ffd600) drop-shadow(0 0 10px #ffd600); }
+.car-diagram .zone.active { fill: rgba(255, 214, 0, .45); stroke: #ffb300; stroke-width: 4; filter: none; }
+.car-diagram .found { filter: drop-shadow(0 0 3px #00e676) drop-shadow(0 0 12px #00e676); }
+.car-diagram .zone.found { fill: rgba(0, 230, 118, .4); stroke: #00c853; stroke-width: 4; filter: none; }
+.car-diagram .beam { opacity: 0; }
+.car-diagram.lights-on .beam { animation: beam 2.6s ease-out; }
+.car-diagram.lights-on .headlight { animation: glow-yellow 2.6s ease-out; }
+.car-diagram.brake-on .taillight { animation: glow-red 2.6s ease-out; }
+.car-diagram .wiper { transform-box: view-box; transform-origin: 128px 97px; }
+.car-diagram.wipe .wiper { animation: wipe .45s ease-in-out 4 alternate; }
+.car-diagram .steer { transform-box: fill-box; transform-origin: center; }
+.car-diagram.steer-turn .steer { animation: steer 1s ease-in-out; }
+.car-diagram.rumble .body { animation: rumble .07s linear 30; }
+.car-diagram .smoke circle { fill: #9e9e9e; opacity: 0; transform-box: fill-box; transform-origin: center; }
+.car-diagram.puff .smoke circle { animation: puff 1.4s ease-out; }
+.car-diagram.puff .smoke circle:nth-child(2) { animation-delay: .2s; }
+.car-diagram.puff .smoke circle:nth-child(3) { animation-delay: .4s; }
+@keyframes beam { 10%, 75% { opacity: .45; } 100% { opacity: 0; } }
+@keyframes glow-yellow { 10%, 75% { filter: drop-shadow(0 0 10px #fff176) drop-shadow(0 0 20px #fff176); } }
+@keyframes glow-red { 10%, 75% { fill: #ff1744; filter: drop-shadow(0 0 8px #ff1744) drop-shadow(0 0 16px #ff1744); } }
+@keyframes wipe { to { transform: translate(14px, -20px); } }
+@keyframes steer { 25% { transform: rotate(-30deg); } 75% { transform: rotate(30deg); } }
+@keyframes rumble { 0%, 100% { transform: translate(0, 0); } 50% { transform: translate(.8px, -.8px); } }
+@keyframes puff { 0% { opacity: .9; transform: translate(0, 0) scale(.4); } 100% { opacity: 0; transform: translate(40px, -30px) scale(1.6); } }
+
+/* ---- What's that sound? ---- */
+.listen-btn {
+  display: flex; align-items: center; gap: 14px; background: #fff; border: var(--edge); border-radius: 24px;
+  padding: 8px 30px 8px 12px; box-shadow: var(--shadow); font-size: clamp(28px, 5vw, 48px); font-weight: 700;
+}
+.listen-icon svg { width: clamp(60px, 9vw, 90px); height: auto; display: block; }
+.listen-btn.playing .listen-icon { animation: pulse .5s ease-in-out 4; }
+
+/* ---- Who helps? ---- */
+.job-top { display: flex; flex-direction: column; align-items: center; gap: 10px; max-width: 100%; }
+.job-scene {
+  display: flex; gap: 12px; font-size: clamp(60px, 11vmin, 120px); line-height: 1;
+  background: #fff; border: var(--edge); border-radius: var(--radius); padding: 10px 30px; box-shadow: var(--shadow);
+}
+.job-ask { font-size: clamp(20px, 3.2vw, 34px); text-align: center; max-width: 100%; }
+
+/* ---- Stop & Go ---- */
+.stopgo { flex: 1; min-height: 0; display: flex; flex-direction: column; gap: 14px; padding: 0 16px 16px; }
+.drive-panel {
+  position: relative; flex: 1; min-height: 220px; border-radius: var(--radius); border: var(--edge);
+  box-shadow: var(--shadow); overflow: hidden;
+  background: linear-gradient(var(--sky-light), #fff 46%, var(--grass) 46%, var(--grass) 58%, var(--road) 58%);
+}
+.dg-lane {
+  position: absolute; left: 0; right: 0; bottom: 0; height: 42%;
+  background-image: repeating-linear-gradient(90deg, var(--line) 0 44px, transparent 44px 80px);
+  background-size: 80px 7px; background-repeat: repeat-x; background-position: 0 70%;
+}
+.dg-thing { position: absolute; left: 0; bottom: 50%; font-size: clamp(44px, 9vmin, 90px); line-height: 1; }
+.dg-stopline { position: absolute; left: 0; bottom: 4%; width: 12px; height: 34%; background: #fff; border-radius: 4px; }
+.dg-light { position: absolute; left: 0; bottom: 34%; width: clamp(46px, 6vw, 70px); z-index: 2; }
+.dg-light svg { width: 100%; height: auto; display: block; }
+.tl circle { fill: #37474f; transition: fill .2s; }
+.tl.red .tl-red { fill: #ff1744; filter: drop-shadow(0 0 6px #ff1744); }
+.tl.yellow .tl-yellow { fill: #ffd600; filter: drop-shadow(0 0 6px #ffd600); }
+.tl.green .tl-green { fill: #00e676; filter: drop-shadow(0 0 6px #00e676); }
+.dg-car { position: absolute; left: 8%; bottom: 7%; width: min(28%, 260px); z-index: 3; }
+.dg-car svg { width: 100%; height: auto; display: block; }
+.dg-stars { position: absolute; top: 10px; right: 14px; display: flex; gap: 4px; z-index: 4; }
+.pedals { display: flex; justify-content: center; gap: clamp(30px, 8vw, 90px); }
+.pedal {
+  width: clamp(110px, 16vmin, 160px); aspect-ratio: 1; font-size: clamp(26px, 4.4vmin, 40px); font-weight: 700; color: #fff;
+  display: flex; align-items: center; justify-content: center; filter: drop-shadow(0 6px 0 rgba(31, 45, 51, .35));
+}
+.pedal-stop { background: #e53935; clip-path: polygon(30% 0, 70% 0, 100% 30%, 100% 70%, 70% 100%, 30% 100%, 0 70%, 0 30%); }
+.pedal-go { background: #00a843; border-radius: 50%; border: 6px solid #fff; box-shadow: 0 0 0 4px var(--ink); }
+.pedal.pulse { animation: pulse .8s ease-in-out infinite; }

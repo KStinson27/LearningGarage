@@ -133,6 +133,7 @@ window.Sound = (() => {
         playing.push(src);
         t += buf.duration + 0.15;
       });
+      duck(t - ctx.currentTime); // vehicle sounds go quiet while the voice talks
     }).catch(() => { if (token === sayToken) speakBuiltIn(parts.join(' ')); });
   }
 
@@ -231,10 +232,93 @@ window.Sound = (() => {
       tone({ freq: f, dur: i === 5 ? 0.5 : 0.16, vol: 0.2, type: 'square', filter: 2500, when: i * 0.13 })),
   };
 
+  effects.backup = () => [0, 0.5, 1.0].forEach(w => tone({ freq: 1050, dur: 0.3, vol: 0.18, type: 'square', filter: 3000, when: w }));
+  effects.screech = () => { tone({ freq: 2400, freqEnd: 1800, dur: 0.7, vol: 0.06, type: 'sawtooth', filter: 4000 }); noise({ dur: 0.7, vol: 0.12, filter: 5000, filterEnd: 2500 }); };
+  effects.hiss = () => noise({ dur: 0.6, vol: 0.2, filter: 6000, filterEnd: 2000 });
+
   function sfx(name) {
     if (ctx && ctx.state === 'suspended') ctx.resume();
     (effects[name] || effects.pop)();
   }
 
-  return { unlock, say, hush, sfx };
+  // ---- real vehicle recordings ------------------------------------------------
+  // sounds/manifest.json maps a sound id to a recording (see tools/sounds.json).
+  // Ids without a recording use a synthesized stand-in from FALLBACK.
+  let soundFiles = null;
+  fetch('sounds/manifest.json')
+    .then(r => (r.ok ? r.json() : null))
+    .then(m => { soundFiles = m; })
+    .catch(() => {});
+
+  const FALLBACK = {
+    'horn-car': 'honk', 'horn-truck': 'honk', airhorn: 'bighonk',
+    'siren-police': 'siren', 'siren-fire': 'siren', 'siren-ambulance': 'siren',
+    'engine-start': 'vroom', 'engine-rev': 'vroom', 'engine-rev-big': 'vroom', 'engine-fast': 'zoom', 'engine-idle': 'putt',
+    motorcycle: 'zoom', tractor: 'putt', train: 'choo', airplane: 'whoosh', helicopter: 'chop', rocket: 'whoosh',
+    boat: 'whoosh', 'bike-bell': 'bell', 'backup-beep': 'backup', 'tire-screech': 'screech', 'air-brakes': 'hiss',
+    door: 'boop', crunch: 'crunch',
+  };
+
+  const soundCache = new Map();
+  function loadSound(id) {
+    const file = soundFiles && soundFiles[id];
+    if (!file || !ctx) return Promise.reject(new Error('no recording'));
+    if (!soundCache.has(file)) {
+      const p = fetch(`sounds/${file}`)
+        .then(r => { if (!r.ok) throw new Error('fetch'); return r.arrayBuffer(); })
+        .then(ab => new Promise((res, rej) => ctx.decodeAudioData(ab, res, rej)));
+      p.catch(() => soundCache.delete(file));
+      soundCache.set(file, p);
+    }
+    return soundCache.get(file);
+  }
+
+  let vehicleSrc = null;
+  let vehicleBus = null;
+  function duck(seconds) {
+    if (!vehicleBus) return;
+    const g = vehicleBus.gain, t = ctx.currentTime;
+    g.cancelScheduledValues(t);
+    g.setTargetAtTime(0.3, t, 0.08);
+    g.setTargetAtTime(1, t + seconds, 0.25);
+  }
+  function stopVehicle() {
+    if (vehicleSrc) { try { vehicleSrc.stop(); } catch { /* done */ } vehicleSrc = null; }
+  }
+
+  /**
+   * Play a real vehicle sound. `rate` speeds it up / slows it down (which also
+   * raises / lowers the pitch: 0.8 makes an engine sound bigger).
+   * Resolves with the sound's length in seconds.
+   */
+  function vehicle(id, { rate = 1, volume = 0.9 } = {}) {
+    if (!id) return Promise.resolve(0);
+    stopVehicle();
+    if (ctx && ctx.state === 'suspended') ctx.resume();
+    return loadSound(id).then(buf => {
+      const src = ctx.createBufferSource();
+      const g = ctx.createGain();
+      g.gain.value = volume;
+      src.buffer = buf;
+      src.playbackRate.value = rate;
+      if (!vehicleBus) { vehicleBus = ctx.createGain(); vehicleBus.connect(ctx.destination); }
+      src.connect(g).connect(vehicleBus);
+      src.start();
+      vehicleSrc = src;
+      return buf.duration / rate;
+    }).catch(() => {
+      sfx(FALLBACK[id] || 'pop');
+      return 1;
+    });
+  }
+
+  // Two ids "sound the same" if neither has a recording and they share a stand-in.
+  function soundKey(id) {
+    return soundFiles && soundFiles[id] ? `rec:${id}` : `fx:${FALLBACK[id] || 'pop'}`;
+  }
+
+  // Warm up recordings so the first tap plays instantly.
+  function preload(ids) { ids.forEach(id => loadSound(id).catch(() => {})); }
+
+  return { unlock, say, hush, sfx, vehicle, stopVehicle, preload, soundKey };
 })();

@@ -20,6 +20,9 @@
  *   v.driveTo(250, { arc: 80 });                  // jump to x = 250px
  *   v.cruise({ from: 1200, to: -300, speed: 140 });   // loop across the screen
  *   v.hop();                                      // little bounce
+ *   v.roll(220);                                  // drive on the spot (the
+ *                                                 // world scrolls instead);
+ *   v.speed                                       // current rolling speed
  */
 window.Motion = (() => {
   const reduceMotion = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -114,6 +117,18 @@ window.Motion = (() => {
       wake(this);
     }
 
+    /** Drive "on the spot" toward a target speed (px/s) with an acceleration
+     *  limit (px/s²). Wheels and suspension behave as if moving; the game
+     *  scrolls the world instead. Read the current speed with v.speed. */
+    roll(target, accel = 300) {
+      const v = this.rolling ? this.rolling.v : 0;
+      this.stop();
+      this.rolling = { v, target: Math.max(0, target), accel: Math.max(1, accel) };
+      wake(this);
+    }
+
+    get speed() { return this.rolling ? this.rolling.v : 0; }
+
     hop(height = 40) {
       this.hopT = 0;
       this.hopH = height;
@@ -128,6 +143,7 @@ window.Motion = (() => {
         resolve(false);
       }
       this.cruising = null;
+      this.rolling = null;
     }
 
     step(dt, now) {
@@ -164,6 +180,14 @@ window.Motion = (() => {
         }
       }
 
+      let rollDx = 0;
+      if (this.rolling) {
+        const r = this.rolling;
+        const maxStep = r.accel * dt;
+        r.v += clamp(r.target - r.v, -maxStep, maxStep);
+        rollDx = (this.flip ? 1 : -1) * r.v * dt; // forward on screen
+      }
+
       if (this.hopT != null) {
         this.hopT += dt / 0.45;
         if (this.hopT >= 1) { this.hopT = null; this.bounceV += 140; } else y += -Math.sin(Math.PI * this.hopT) * this.hopH;
@@ -171,7 +195,7 @@ window.Motion = (() => {
       this.y = y;
 
       const s = this.scale();
-      const dx = this.x - prevX;
+      const dx = this.x - prevX + rollDx;
       this.vx = dt > 0 ? dx / dt : 0;
       const rawA = dt > 0 ? (this.vx - prevV) / dt : 0;
       this.ax += (rawA - this.ax) * Math.min(1, dt * 14); // smooth out jitter
@@ -201,7 +225,8 @@ window.Motion = (() => {
       this.render();
       const settled = Math.abs(this.pitch) < 0.02 && Math.abs(this.pitchV) < 0.05 &&
         Math.abs(this.bounce) < 0.02 && Math.abs(this.bounceV) < 0.05;
-      return !!(this.task || this.cruising || this.hopT != null || !settled);
+      const rolling = this.rolling && (this.rolling.v > 0.5 || this.rolling.target > 0);
+      return !!(this.task || this.cruising || rolling || this.hopT != null || !settled);
     }
 
     render() {

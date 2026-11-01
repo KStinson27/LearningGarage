@@ -10,7 +10,9 @@
 (function () {
   'use strict';
 
-  const { VEHICLES, COLORS, SHAPES, LETTERS, NUMBER_THINGS } = window.DATA;
+  const { VEHICLES, COLORS, SHAPES, LETTERS, NUMBER_THINGS, PARTS, JOBS, SOUND_GAME } = window.DATA;
+  const byId = id => VEHICLES.find(v => v.id === id);
+  const cap = s => s.charAt(0).toUpperCase() + s.slice(1);
   const app = document.getElementById('app');
   const say = line => Sound.say(line);
 
@@ -73,8 +75,12 @@
   // ---- shared pieces -------------------------------------------------------
   function vehicleArt(v) {
     if (v.svg === 'monster') return h('span', { class: 'art art-svg', html: Art.monster(v.color || '#e53935') });
+    if (v.svg) return h('span', { class: 'art art-svg', html: Art.workTruck(v.svg, v.color) });
     return h('span', { class: 'art art-emoji' }, v.emoji);
   }
+
+  // Play a vehicle's real sound (resolves with its length in seconds).
+  const vehicleSound = v => Sound.vehicle(v.sound, { rate: v.rate || 1 });
 
   // A green highway sign with a white inner border.
   function highwaySign(text, cls = '') {
@@ -140,6 +146,7 @@
   function go(name) {
     clearTimers();
     Sound.hush();
+    Sound.stopVehicle();
     app.replaceChildren(screens[name]());
     app.scrollTop = 0;
   }
@@ -157,7 +164,8 @@
       if (started) return;
       started = true;
       Sound.unlock();
-      Sound.sfx('vroom');
+      Sound.vehicle('engine-start');
+      Sound.preload(['horn-car', 'engine-rev-big', 'engine-rev', 'door']);
       // Pull away: the truck speeds up (nose lifts) and drives off screen.
       const truck = el.querySelector('.splash-truck');
       truck.style.animation = 'none';
@@ -170,12 +178,16 @@
   // ---- home ----------------------------------------------------------------
   // Each section is a road sign on a post.
   const TOPICS = [
-    { id: 'garage', label: 'Trucks', intro: 'Trucks and cars!' },
-    { id: 'numbers', label: 'Numbers', intro: 'Numbers!' },
-    { id: 'shapes', label: 'Shapes', intro: 'Shapes!' },
-    { id: 'colors', label: 'Colors', intro: 'Colors!' },
-    { id: 'abc', label: 'ABC', intro: 'A, B, C!' },
-    { id: 'stickers', label: 'Stickers', intro: 'Your stickers!' },
+    { id: 'garage', label: 'Trucks' },
+    { id: 'parts', label: 'Car Parts' },
+    { id: 'sounds', label: 'Sounds' },
+    { id: 'jobs', label: 'Who Helps?' },
+    { id: 'stopgo', label: 'Stop & Go' },
+    { id: 'numbers', label: 'Numbers' },
+    { id: 'shapes', label: 'Shapes' },
+    { id: 'colors', label: 'Colors' },
+    { id: 'abc', label: 'ABC' },
+    { id: 'stickers', label: 'Stickers' },
   ];
 
   function home() {
@@ -197,11 +209,11 @@
     // Tap them for a sound!
     const traffic = h('div', { class: 'traffic' });
     const drivers = [
-      { art: Art.car('#1e88e5'), cls: 'drive-car', sfx: 'honk', line: Lines.trafficCar, speed: 150, start: 0.15 },
-      { art: Art.monster('#ff7043'), cls: 'drive-monster', sfx: 'vroom', line: Lines.trafficMonster, speed: 105, start: 0.65 },
+      { art: Art.car('#1e88e5'), cls: 'drive-car', sound: 'horn-car', rate: 1, speed: 150, start: 0.15 },
+      { art: Art.monster('#ff7043'), cls: 'drive-monster', sound: 'engine-rev-big', rate: 0.75, speed: 105, start: 0.65 },
     ].map(d => {
       const el = h('button', { class: `traffic-vehicle ${d.cls}`, 'aria-label': 'vehicle', html: d.art });
-      tap(el, () => { Sound.sfx(d.sfx); say(d.line); Motion.vehicle(el).hop(el.offsetHeight * 0.35); });
+      tap(el, () => { Sound.vehicle(d.sound, { rate: d.rate }); Motion.vehicle(el).hop(el.offsetHeight * 0.35); });
       traffic.append(el);
       return { el, d };
     });
@@ -222,10 +234,13 @@
   }
 
   // ---- generic "Learn" view: big stage on top, tappable picture grid below --
-  function learnView({ items, tile, stage, speak, sfx, onShow, hint = '👇 Tap a picture!' }) {
+  // `sound(item)` may play a real sound first (returns a promise of its
+  // length); the spoken line starts once the sound has had its moment.
+  function learnView({ items, tile, stage, speak, sound, onShow, hint = '👇 Tap a picture!' }) {
     const stageEl = h('div', { class: 'stage' }, h('div', { class: 'stage-hint' }, hint));
     const grid = h('div', { class: 'grid' });
     let current = null;
+    let selectToken = 0;
     const buttons = [];
 
     function select(item) {
@@ -233,8 +248,13 @@
       stageEl.replaceChildren(stage(item));
       if (onShow) onShow(stageEl, item);
       buttons.forEach(b => b.classList.toggle('sel', b._item === item));
-      Sound.sfx(sfx ? sfx(item) : 'pop');
-      later(() => say(speak(item)), 150);
+      const token = ++selectToken;
+      Sound.hush();
+      const playing = sound ? sound(item) : (Sound.sfx('pop'), Promise.resolve(0));
+      playing.then(sec => {
+        if (token !== selectToken) return;
+        later(() => { if (token === selectToken) say(speak(item)); }, Math.min(1600, Math.max(150, sec * 600)));
+      });
     }
 
     items.forEach(item => {
@@ -290,7 +310,7 @@
     function round() {
       locked = false;
       // Start with 2 choices, add more as they get the hang of it.
-      const k = Math.min(2 + Math.floor(wins / 3), 4, items.length);
+      const k = Math.min(3 + Math.floor(wins / 3), 6, items.length);
       target = pick(items.filter(i => i !== last));
       last = target;
       const others = shuffle(items.filter(i => i !== target)).slice(0, k - 1);
@@ -328,6 +348,7 @@
 
   // ---- Trucks (garage) ------------------------------------------------------
   function garage() {
+    const factIndex = {}; // tap the same vehicle again for the next fact
     return h('div', { class: 'screen' }, header('Trucks & Cars'), h('main', { class: 'topic' }, learnView({
       items: VEHICLES,
       tile: v => vehicleArt(v),
@@ -336,8 +357,8 @@
         h('div', { class: 'stage-word' }, v.name),
         h('div', { class: 'stage-art' }, vehicleArt(v))),
       onShow: driveIntoStage,
-      speak: Lines.vehicle,
-      sfx: v => v.sfx,
+      speak: v => { const i = factIndex[v.id] || 0; factIndex[v.id] = i + 1; return Lines.vehicle(v, i); },
+      sound: vehicleSound,
       hint: '👇 Tap a truck!',
     })));
   }
@@ -366,7 +387,7 @@
 
   // Monster truck counting game: tap each car and the truck jumps on it.
   function countGame() {
-    let max = 3, rounds = 0, lastN = 0, first = true;
+    let max = 4, rounds = 0, lastN = 0, first = true;
     const numEl = h('div', { class: 'count-num' });
     const dotsEl = h('div', { class: 'count-dots' });
     const road = h('div', { class: 'count-road' });
@@ -412,7 +433,7 @@
         const rr = road.getBoundingClientRect();
         const cr = car.getBoundingClientRect();
         const x = cr.left - rr.left + cr.width / 2 - truck.offsetLeft - truck.offsetWidth / 2;
-        Sound.sfx('boing');
+        Sound.vehicle('engine-rev', { rate: 0.8 });
         driver.driveTo(x, { duration: 650, ease: 'inOut', arc: truck.offsetHeight * 0.55 }).then(() => {
           car.classList.add('squash');
           Sound.sfx('crunch');
@@ -431,7 +452,7 @@
             confetti();
             say(Lines.countDone(n));
           }, 850);
-          if (rounds % 2 === 0) max = Math.min(10, max + 1); // slowly count higher
+          max = Math.min(10, max + 1); // count higher each round
           const showNext = () => nextBtn.classList.remove('hidden');
           if (rounds % 2 === 0) later(() => awardSticker(showNext), 3200);
           else later(showNext, 2500);
@@ -483,7 +504,7 @@
           h('div', { class: 'stage-art' }, h('span', { class: 'art art-svg', html: Art.monster(c.hex) }))),
         onShow: driveIntoStage,
         speak: Lines.color,
-        sfx: () => 'vroom',
+        sound: () => Sound.vehicle('engine-rev', { rate: 0.75 }),
         hint: '👇 Tap a color!',
       }),
       play: () => findGame({
@@ -498,8 +519,8 @@
 
   // ---- ABC ------------------------------------------------------------------
   function abc() {
-    const letterArt = L => (L.svg === 'monster'
-      ? h('span', { class: 'art art-svg', html: Art.monster('#e53935') })
+    const letterArt = L => (L.svg
+      ? vehicleArt(VEHICLES.find(v => v.svg === L.svg))
       : h('span', { class: 'art art-emoji' }, L.emoji));
 
     function word(L) {
@@ -532,6 +553,358 @@
     });
   }
 
+  // ---- Car Parts --------------------------------------------------------------
+  // A big car where every part can be tapped. Some parts do something real:
+  // the headlights shine, the horn honks, the engine starts, the wipers wipe.
+  function partsCar() {
+    const wrap = h('div', { class: 'parts-car', html: Art.carDiagram('#1e88e5') });
+    const svg = wrap.querySelector('svg');
+    const highlight = (id, cls = 'active') => {
+      svg.querySelectorAll(`.${cls}`).forEach(el => el.classList.remove(cls));
+      if (id) svg.querySelectorAll(`[data-part="${id}"]`).forEach(el => el.classList.add(cls));
+    };
+    const ACTIONS = {
+      headlight: () => restart(svg, 'lights-on'),
+      taillight: () => restart(svg, 'brake-on'),
+      wheel: () => {
+        Sound.vehicle('engine-idle');
+        const v = Motion.vehicle(wrap);
+        v.driveTo(-60, { duration: 800 }).then(ok => ok && v.driveTo(0, { duration: 900 }));
+      },
+      'steering-wheel': () => { Sound.vehicle('horn-car'); restart(svg, 'steer-turn'); },
+      windshield: () => restart(svg, 'wipe'),
+      door: () => Sound.vehicle('door'),
+      'door-handle': () => Sound.vehicle('door'),
+      trunk: () => Sound.vehicle('door'),
+      hood: () => { Sound.vehicle('engine-start'); restart(svg, 'rumble'); },
+      exhaust: () => { Sound.vehicle('engine-rev'); restart(svg, 'puff'); },
+    };
+    const partAt = e => {
+      const el = e.target && e.target.closest && e.target.closest('[data-part]');
+      return el ? PARTS.find(p => p.id === el.dataset.part) : null;
+    };
+    return { wrap, svg, highlight, act: id => ACTIONS[id] && ACTIONS[id](), partAt };
+  }
+
+  function parts() {
+    return topicScreen({
+      title: 'Car Parts',
+      learn: () => {
+        const car = partsCar();
+        const label = h('div', { class: 'part-label' }, '👆 Tap any part of the car!');
+        tap(car.wrap, e => {
+          const p = car.partAt(e);
+          if (!p) return;
+          car.highlight(p.id);
+          label.textContent = cap(p.name);
+          restart(label, 'pop-in');
+          car.act(p.id);
+          say(Lines.part(p));
+        });
+        return h('div', { class: 'parts' }, label, car.wrap);
+      },
+      play: () => {
+        const car = partsCar();
+        const promptEl = h('button', { class: 'prompt press' });
+        let target = null, last = null, wins = 0, locked = false;
+        tap(promptEl, () => target && say(Lines.partFind(target)));
+        function round() {
+          locked = false;
+          car.highlight(null);
+          car.highlight(null, 'found');
+          target = pick(PARTS.filter(p => p !== last));
+          last = target;
+          promptEl.replaceChildren(h('span', { class: 'speaker' }, '🔊'), h('span', {}, Lines.partFind(target)));
+          say(Lines.partFind(target));
+        }
+        tap(car.wrap, e => {
+          const p = car.partAt(e);
+          if (!p || locked) return;
+          if (p === target) {
+            locked = true;
+            wins++;
+            car.highlight(p.id, 'found');
+            car.act(p.id);
+            Sound.sfx('cheer');
+            confetti();
+            say([pick(Lines.praise), Lines.partName(p)]);
+            if (wins % 4 === 0) later(() => awardSticker(round), 2200);
+            else later(round, 2600);
+          } else {
+            car.highlight(p.id);
+            Sound.sfx('boop');
+            say([Lines.partThats(p), Lines.partFind(target)]);
+            later(() => car.highlight(null), 1200);
+          }
+        });
+        round();
+        return h('div', { class: 'parts' }, promptEl, car.wrap);
+      },
+    });
+  }
+
+  // ---- What's that sound? ------------------------------------------------------
+  function sounds() {
+    const items = SOUND_GAME.map(byId).filter(Boolean);
+    const listenBtn = h('button', { class: 'listen-btn press', 'aria-label': 'Play the sound again' },
+      h('span', { class: 'listen-icon', html: Art.sign('sounds') }), h('span', {}, 'Listen'));
+    const choicesEl = h('div', { class: 'choices named' });
+    let target = null, last = null, wins = 0, locked = false;
+
+    const play = () => { if (target) { restart(listenBtn, 'playing'); vehicleSound(target); } };
+    tap(listenBtn, play);
+
+    function round() {
+      locked = false;
+      const k = Math.min(3 + Math.floor(wins / 3), 5);
+      target = pick(items.filter(i => i !== last));
+      last = target;
+      // Never offer two vehicles that would sound the same.
+      const keys = new Set([Sound.soundKey(target.sound)]);
+      const others = [];
+      for (const v of shuffle(items.filter(i => i !== target))) {
+        const key = Sound.soundKey(v.sound);
+        if (keys.has(key)) continue;
+        keys.add(key);
+        others.push(v);
+        if (others.length === k - 1) break;
+      }
+      const opts = shuffle([target, ...others]);
+      choicesEl.dataset.n = opts.length;
+      choicesEl.replaceChildren(...opts.map(v => {
+        const b = h('button', { class: 'choice press' }, vehicleArt(v), h('span', { class: 'choice-name' }, v.name));
+        tap(b, () => choose(v, b));
+        return b;
+      }));
+      say(Lines.soundListen);
+      later(play, 2300);
+    }
+
+    function choose(v, b) {
+      if (locked) return;
+      if (v === target) {
+        locked = true;
+        wins++;
+        b.classList.add('right');
+        Sound.stopVehicle();
+        Sound.sfx('cheer');
+        confetti();
+        say([pick(Lines.praise), Lines.vehicleName(v)]);
+        if (wins % 3 === 0) later(() => awardSticker(round), 2000);
+        else later(round, 2600);
+      } else {
+        restart(b, 'wiggle');
+        Sound.stopVehicle();
+        say([Lines.vehicleThats(v), Lines.soundAgain]);
+        later(play, 2400);
+      }
+    }
+
+    round();
+    return h('div', { class: 'screen' }, header("What's That Sound?"),
+      h('main', { class: 'play' }, listenBtn, choicesEl));
+  }
+
+  // ---- Who helps? ----------------------------------------------------------------
+  function jobs() {
+    const helpers = [...new Set(JOBS.map(j => j.answer))].map(byId);
+    const sceneEl = h('div', { class: 'job-scene' });
+    const askEl = h('button', { class: 'prompt job-ask press' });
+    const choicesEl = h('div', { class: 'choices named' });
+    let job = null, last = null, wins = 0, locked = false;
+    tap(askEl, () => job && say(Lines.jobAsk(job)));
+
+    function round() {
+      locked = false;
+      job = pick(JOBS.filter(j => j !== last));
+      last = job;
+      const answer = byId(job.answer);
+      const k = Math.min(3 + Math.floor(wins / 4), 4);
+      const opts = shuffle([answer, ...shuffle(helpers.filter(v => v !== answer)).slice(0, k - 1)]);
+      sceneEl.replaceChildren(...job.scene.map(e => h('span', { class: 'pop-in' }, e)));
+      askEl.replaceChildren(h('span', { class: 'speaker' }, '🔊'), h('span', {}, job.ask));
+      choicesEl.dataset.n = opts.length;
+      choicesEl.replaceChildren(...opts.map(v => {
+        const b = h('button', { class: 'choice press' }, vehicleArt(v), h('span', { class: 'choice-name' }, v.name));
+        tap(b, () => choose(v, b));
+        return b;
+      }));
+      say(Lines.jobAsk(job));
+    }
+
+    function choose(v, b) {
+      if (locked) return;
+      if (v.id === job.answer) {
+        locked = true;
+        wins++;
+        b.classList.add('right');
+        Sound.sfx('cheer');
+        confetti();
+        vehicleSound(v);
+        say([pick(Lines.praise), Lines.jobWhy(job)]);
+        if (wins % 3 === 0) later(() => awardSticker(round), 3200);
+        else later(round, 4200);
+      } else {
+        restart(b, 'wiggle');
+        Sound.sfx('boop');
+        say([Lines.vehicleThats(v), Lines.tryAgain]);
+      }
+    }
+
+    round();
+    return h('div', { class: 'screen' }, header('Who Helps?'),
+      h('main', { class: 'play jobs' }, h('div', { class: 'job-top' }, sceneEl, askEl), choicesEl));
+  }
+
+  // ---- Stop & Go: traffic light driving game --------------------------------------
+  // The car drives on the spot while the road, trees and traffic lights scroll
+  // past. Red means STOP (brake with the pedal), green means GO.
+  function stopgo() {
+    const L = Lines.stopgo;
+    const panel = h('div', { class: 'drive-panel' });
+    const lane = h('div', { class: 'dg-lane' });
+    const sceneryEls = ['🌳', '🏠', '🌲', '🏡', '🌳', '🏪', '🌲', '🏠'].map(e => h('span', { class: 'dg-thing' }, e));
+    const light = h('div', { class: 'dg-light tl green', html: Art.trafficLight() });
+    const stopLine = h('div', { class: 'dg-stopline' });
+    const carEl = h('div', { class: 'dg-car', html: Art.car('#e53935') });
+    const starsEl = h('div', { class: 'dg-stars' });
+    panel.append(...sceneryEls, lane, stopLine, light, carEl, starsEl);
+
+    const stopBtn = h('button', { class: 'pedal pedal-stop press', 'aria-label': 'Stop' }, 'STOP');
+    const goBtn = h('button', { class: 'pedal pedal-go press', 'aria-label': 'Go' }, 'GO');
+    const car = Motion.vehicle(carEl, { flip: true });
+
+    const CRUISE = 230; // px/s
+    let dist = 0;        // how far we've driven (px)
+    let lightAt = null;  // world position of the next stop line
+    let lightState = 'green';
+    let phase = 'parked'; // parked | driving | braking | stopped
+    let changeScheduled = false;
+    let kidStopped = false;
+    let stars = 0;
+    let raf = 0, lastT = 0;
+
+    const W = () => panel.clientWidth;
+    const carFront = () => carEl.offsetLeft + carEl.offsetWidth;
+    const gap = () => (lightAt == null ? Infinity : lightAt - dist); // px from car front to stop line
+
+    function setLight(state) {
+      lightState = state;
+      light.classList.remove('green', 'yellow', 'red');
+      light.classList.add(state);
+    }
+    function pulse(btn) { [stopBtn, goBtn].forEach(b => b.classList.toggle('pulse', b === btn)); }
+    function drawStars() { starsEl.replaceChildren(...Array.from({ length: stars % 3 || (stars ? 3 : 0) }, () => h('span', { html: Art.star(34) }))); }
+
+    function spawnLight() {
+      lightAt = dist + W() * (1.1 + Math.random() * 0.5);
+      changeScheduled = false;
+      setLight('green');
+    }
+
+    function brakeToLine() {
+      const room = Math.max(10, gap() - 18);
+      const v = car.speed;
+      car.roll(0, Math.max(40, (v * v) / (2 * room))); // ease to a stop right at the line
+      phase = 'braking';
+    }
+
+    function pressGo() {
+      Sound.stopVehicle();
+      if (lightState === 'red' && gap() < W() * 0.6 && gap() > -20) { say(L.waitGreen); return; }
+      if (phase === 'driving') return;
+      phase = 'driving';
+      pulse(null);
+      car.roll(CRUISE, 260);
+      Sound.vehicle('engine-rev', { rate: 0.9 });
+      if (lightAt == null) spawnLight();
+      say(L.green);
+    }
+
+    function pressStop() {
+      if (phase !== 'driving') return;
+      if (lightState === 'green') { car.roll(0, 260); phase = 'stopped'; say(L.green); pulse(goBtn); return; }
+      kidStopped = true;
+      brakeToLine();
+    }
+
+    tap(goBtn, pressGo);
+    tap(stopBtn, pressStop);
+
+    function frame(t) {
+      if (!panel.isConnected) { cancelAnimationFrame(raf); return; }
+      const dt = Math.min(0.05, (t - lastT) / 1000 || 0);
+      lastT = t;
+      dist += car.speed * dt;
+      const w = W();
+      const front = carFront();
+
+      // Road dashes and scenery scroll by.
+      lane.style.backgroundPositionX = `${-dist % 80}px`;
+      const span = w + 260;
+      sceneryEls.forEach((el, i) => {
+        const x = ((i * span) / sceneryEls.length - dist * 0.6) % span;
+        el.style.transform = `translateX(${(x < -130 ? x + span : x)}px)`;
+      });
+
+      // Traffic light position.
+      if (lightAt != null) {
+        const x = front + gap();
+        light.style.transform = `translateX(${x}px)`;
+        stopLine.style.transform = `translateX(${x - 6}px)`;
+        if (x < -120) spawnLight();
+      }
+
+      // Light changes as we get close.
+      if (phase === 'driving' && lightAt != null && !changeScheduled && gap() < w * 0.7 && gap() > w * 0.35) {
+        changeScheduled = true;
+        if (Math.random() < 0.75) {
+          setLight('yellow');
+          say(L.yellow);
+          later(() => { setLight('red'); say(L.red); pulse(stopBtn); }, 1300);
+        } else {
+          say(L.green);
+        }
+      }
+
+      // Didn't press STOP in time: stop for them (no fail, just the rule).
+      if (phase === 'driving' && lightState === 'red' && gap() > 0) {
+        const v = car.speed;
+        if (gap() - 18 < (v * v) / (2 * 520) + 10) {
+          kidStopped = false;
+          brakeToLine();
+          Sound.sfx('screech');
+        }
+      }
+
+      // Came to a stop at the red light.
+      if (phase === 'braking' && car.speed < 1) {
+        phase = 'stopped';
+        pulse(null);
+        if (kidStopped) {
+          stars++;
+          drawStars();
+          Sound.sfx('cheer');
+          say(L.stopped);
+        } else {
+          say(L.autoStop);
+        }
+        const earnedSticker = kidStopped && stars % 3 === 0;
+        later(() => {
+          setLight('green');
+          say(L.goNow);
+          pulse(goBtn);
+          if (earnedSticker) later(() => awardSticker(), 1800);
+        }, 2600);
+      }
+      raf = requestAnimationFrame(frame);
+    }
+
+    later(() => { say(L.start); pulse(goBtn); lastT = performance.now(); raf = requestAnimationFrame(frame); }, 0);
+    return h('div', { class: 'screen' }, header('Stop & Go'),
+      h('main', { class: 'stopgo' }, panel, h('div', { class: 'pedals' }, stopBtn, goBtn)));
+  }
+
   // ---- Stickers -------------------------------------------------------------
   function stickers() {
     const data = Store.load();
@@ -543,7 +916,7 @@
         vehicleArt(v),
         data[v.id] > 1 ? h('span', { class: 'badge' }, `×${data[v.id]}`) : null);
       tap(b, () => {
-        if (owned) { restart(b, 'wiggle'); Sound.sfx(v.sfx); say(Lines.vehicle(v)); }
+        if (owned) { restart(b, 'wiggle'); vehicleSound(v).then(sec => later(() => say(Lines.vehicle(v)), Math.min(1600, sec * 600))); }
         else { Sound.sfx('boop'); say(Lines.stickerLocked); }
       });
       grid.append(b);
@@ -565,7 +938,7 @@
       h('main', { class: 'topic sticker-page' }, grid, reset));
   }
 
-  const screens = { splash, home, garage, numbers, shapes, colors, abc, stickers };
+  const screens = { splash, home, garage, parts, sounds, jobs, stopgo, numbers, shapes, colors, abc, stickers };
 
   // ---- iPad niceties ---------------------------------------------------------
   // No pinch-zoom, no long-press menus, no accidental text selection.

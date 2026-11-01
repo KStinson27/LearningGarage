@@ -1,0 +1,56 @@
+{
+  "_about": "Real vehicle sound recordings used by the app. Run tools/make_sounds.py to download, trim and encode them into sounds/. Only use sounds whose license allows it (CC0, or CC BY with credit).",
+  "sources": {
+    "oculus": {
+      "title": "Oculus Audio Pack (via Meta Open Sound)",
+      "author": "Oculus VR, LLC",
+      "license": "CC BY 4.0",
+      "license_url": "https://creativecommons.org/licenses/by/4.0/",
+      "home": "https://github.com/facebookincubator/meta-open-sound"
+    }
+  },
+  "sounds": {
+    "engine-start": {
+      "source": "oculus",
+      "url": "https://raw.githubusercontent.com/facebookincubator/meta-open-sound/main/corpora/oculus-audio-pack/ogg/VEHCar_CarStartRunStop_OS_01.ogg",
+      "name": "Car engine starting",
+      "start": 0.3, "duration": 3.9
+    },
+    "engine-rev": {
+      "source": "oculus",
+      "url": "https://raw.githubusercontent.com/facebookincubator/meta-open-sound/main/corpora/oculus-audio-pack/ogg/VEHCar_CarStartRunStop_OS_01.ogg",
+      "name": "Car engine revving",
+      "start": 4.9, "duration": 2.9
+    },
+    "engine-rev-big": {
+      "source": "oculus",
+      "url": "https://raw.githubusercontent.com/facebookincubator/meta-open-sound/main/corpora/oculus-audio-pack/ogg/VEHCar_CarStartRunStop_OS_02.ogg",
+      "name": "Engine revving twice",
+      "start": 11.5, "duration": 3.4
+    },
+    "engine-fast": {
+      "source": "oculus",
+      "url": "https://raw.githubusercontent.com/facebookincubator/meta-open-sound/main/corpora/oculus-audio-pack/ogg/VEHCar_CarEngineHigh_LOOP_01.ogg",
+      "name": "Engine at high speed",
+      "start": 0, "duration": 2.4
+    },
+    "engine-idle": {
+      "source": "oculus",
+      "url": "https://raw.githubusercontent.com/facebookincubator/meta-open-sound/main/corpora/oculus-audio-pack/ogg/VEHCar_CarEngineSlow_LOOP_01.ogg",
+      "name": "Engine running slowly",
+      "start": 0, "duration": 2.6
+    },
+    "train": {
+      "source": "oculus",
+      "url": "https://raw.githubusercontent.com/facebookincubator/meta-open-sound/main/corpora/oculus-audio-pack/ogg/TRNElec_TrainPassby_OS_01.ogg",
+      "name": "Train passing by",
+      "start": 7.0, "duration": 5.0
+    },
+    "door": {
+      "source": "oculus",
+      "url": "https://raw.githubusercontent.com/facebookincubator/meta-open-sound/main/corpora/oculus-audio-pack/ogg/DOORMetl_HatchClose_OS_01.ogg",
+      "name": "Metal door closing",
+      "start": 0, "duration": 1.6
+    }
+  }
+}
