@@ -8,18 +8,19 @@ window.Art = (() => {
 
   // ---- detailed car (viewBox 200 x 110) -------------------------------------
   function carWheel(x) {
-    return `<g transform="translate(${x} 88)">
+    return `<g transform="translate(${x} 88)"><g class="spin">
       <circle r="19" fill="#1c1c1c"/>
       <circle r="17" fill="none" stroke="#333" stroke-width="3" stroke-dasharray="4 3"/>
       <circle r="11" fill="#cfd8dc" stroke="${S}" stroke-width="1.5"/>
       <path d="M0-9V9M-7.8-4.5L7.8 4.5M-7.8 4.5L7.8-4.5" stroke="#90a4ae" stroke-width="3" stroke-linecap="round"/>
       <circle r="3.5" fill="#eceff1" stroke="#455a64" stroke-width="1.5"/>
-    </g>`;
+    </g></g>`;
   }
 
   function car(color = '#e53935') {
-    return `<svg viewBox="0 0 200 110" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+    return `<svg viewBox="0 0 200 110" data-wheel-r="19" data-pivot="100 84" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
       <ellipse cx="100" cy="103" rx="90" ry="5" fill="#000" opacity=".2"/>
+      <g class="body">
       <path d="M12 74 Q10 58 26 54 L58 48 L80 24 Q86 18 96 18 L138 18 Q149 18 155 26 L170 46 Q190 50 190 64 L190 80 Q190 88 182 88 L20 88 Q12 88 12 80 Z"
         fill="${color}" stroke="${S}" stroke-width="3" stroke-linejoin="round"/>
       <path d="M12 76 L190 74 L190 80 Q190 88 182 88 L20 88 Q12 88 12 80Z" fill="#000" opacity=".2"/>
@@ -35,13 +36,14 @@ window.Art = (() => {
       <rect x="184" y="58" width="6" height="11" rx="2" fill="#ff5252" stroke="${S}" stroke-width="1.5"/>
       <rect x="10" y="74" width="16" height="8" rx="3" fill="#cfd8dc" stroke="${S}" stroke-width="1.5"/>
       <path d="M28 88 A24 24 0 0 1 76 88Z M126 88 A24 24 0 0 1 174 88Z" fill="${S}"/>
+      </g>
       ${carWheel(52)}${carWheel(150)}
     </svg>`;
   }
 
   // ---- detailed monster truck (viewBox 240 x 200) ---------------------------
   function bigWheel(x) {
-    return `<g transform="translate(${x} 146)">
+    return `<g transform="translate(${x} 146)"><g class="spin">
       <circle r="46" fill="#1c1c1c"/>
       <circle r="42" fill="none" stroke="#3a3a3a" stroke-width="8" stroke-dasharray="8 6"/>
       <circle r="31" fill="#2a2a2a"/>
@@ -50,18 +52,21 @@ window.Art = (() => {
       <path d="M0-18V18M-15.6-9L15.6 9M-15.6 9L15.6-9" stroke="#78909c" stroke-width="5" stroke-linecap="round"/>
       <circle r="7" fill="#eceff1" stroke="#455a64" stroke-width="2"/>
       <path d="M-10-14a17 17 0 0 1 20 0" stroke="#fff" stroke-width="3" fill="none" opacity=".7" stroke-linecap="round"/>
-    </g>`;
+    </g></g>`;
   }
 
   function monster(color = '#ff7043') {
-    return `<svg viewBox="0 0 240 200" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+    return `<svg viewBox="0 0 240 200" data-wheel-r="46" data-pivot="120 104" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
       <ellipse cx="120" cy="193" rx="108" ry="6" fill="#000" opacity=".22"/>
+      <g class="body">
       <rect x="148" y="12" width="7" height="40" rx="3" fill="#90a4ae" stroke="${S}" stroke-width="2"/>
       <rect x="158" y="18" width="7" height="34" rx="3" fill="#90a4ae" stroke="${S}" stroke-width="2"/>
+      </g>
       <rect x="50" y="104" width="140" height="12" rx="4" fill="#37474f" stroke="${S}" stroke-width="2"/>
       <g stroke="${S}" stroke-width="2"><rect x="74" y="96" width="9" height="40" rx="3" fill="#cfd8dc"/><rect x="157" y="96" width="9" height="40" rx="3" fill="#cfd8dc"/></g>
       <path d="M71 102h15M71 109h15M71 116h15M71 123h15M154 102h15M154 109h15M154 116h15M154 123h15" stroke="#ff9100" stroke-width="4" stroke-linecap="round"/>
       ${bigWheel(62)}${bigWheel(178)}
+      <g class="body">
       <path d="M20 100 L18 78 Q18 68 30 66 L78 62 L96 34 Q100 28 108 28 L146 28 Q154 28 154 36 L154 62 L218 62 Q226 62 226 70 L226 98 Q226 106 218 106 L28 106 Q20 106 20 100 Z"
         fill="${color}" stroke="${S}" stroke-width="3" stroke-linejoin="round"/>
       <path d="M20 90 L226 90 L226 98 Q226 106 218 106 L28 106 Q20 106 20 100Z" fill="#000" opacity=".2"/>
@@ -81,6 +86,7 @@ window.Art = (() => {
       <rect x="220" y="70" width="6" height="11" rx="2" fill="#ff5252" stroke="${S}" stroke-width="1.5"/>
       <path d="M8 108 Q10 78 62 76 Q114 78 116 108 L104 108 Q102 90 62 89 Q22 90 20 108Z" fill="#263238" stroke="${S}" stroke-width="2" stroke-linejoin="round"/>
       <path d="M124 108 Q126 78 178 76 Q230 78 232 108 L220 108 Q218 90 178 89 Q138 90 136 108Z" fill="#263238" stroke="${S}" stroke-width="2" stroke-linejoin="round"/>
+      </g>
     </svg>`;
   }
 

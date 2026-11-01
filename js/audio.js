@@ -1,6 +1,10 @@
 /*
- * Sound: synthesized sound effects (Web Audio) + spoken words (Speech Synthesis).
- * No audio files needed, so the app stays tiny and works offline.
+ * Sound: sound effects (synthesized with Web Audio) + the spoken voice.
+ *
+ * Voice: every line in js/lines.js is pre-recorded with a natural-sounding
+ * voice (see tools/make_voice.py) into voice/*.mp3, listed in
+ * voice/manifest.json. If a line has no recording, we fall back to the
+ * device's built-in speech voice.
  *
  * iPad note: Safari only allows audio after the first tap, so the app calls
  * Sound.unlock() from the "Start your engines!" splash screen.
@@ -8,16 +12,44 @@
 window.Sound = (() => {
   let ctx = null;
   let master = null;
+  let voiceOut = null;
   let voice = null;
   const hasSpeech = 'speechSynthesis' in window;
 
+  // ---- recorded voice clips -------------------------------------------------
+  let manifest = null;
+  fetch('voice/manifest.json')
+    .then(r => (r.ok ? r.json() : null))
+    .then(m => { manifest = m && m.clips; })
+    .catch(() => {});
+
+  const clipCache = new Map();
+  function loadClip(text) {
+    const file = manifest && manifest[text];
+    if (!file || !ctx) return Promise.reject(new Error('no clip'));
+    if (!clipCache.has(file)) {
+      const p = fetch(`voice/${file}`)
+        .then(r => { if (!r.ok) throw new Error('fetch'); return r.arrayBuffer(); })
+        // Callback form of decodeAudioData works on older iPads too.
+        .then(ab => new Promise((res, rej) => ctx.decodeAudioData(ab, res, rej)));
+      p.catch(() => clipCache.delete(file));
+      clipCache.set(file, p);
+    }
+    return clipCache.get(file);
+  }
+
   function unlock() {
     const AC = window.AudioContext || window.webkitAudioContext;
+    // iOS 17+: play even when the iPad's silent switch is on (it's a kids' app).
+    try { if (navigator.audioSession) navigator.audioSession.type = 'playback'; } catch { /* older iOS */ }
     if (!ctx && AC) {
       ctx = new AC();
       master = ctx.createGain();
-      master.gain.value = 0.8;
+      master.gain.value = 0.7;
       master.connect(ctx.destination);
+      voiceOut = ctx.createGain();
+      voiceOut.gain.value = 1;
+      voiceOut.connect(ctx.destination);
     }
     if (ctx && ctx.state === 'suspended') ctx.resume();
     if (hasSpeech) {
@@ -34,8 +66,11 @@ window.Sound = (() => {
     if (!hasSpeech) return;
     const voices = speechSynthesis.getVoices().filter(v => /^en/i.test(v.lang));
     if (!voices.length) return;
-    const preferred = ['Samantha', 'Karen', 'Moira', 'Tessa', 'Google US English', 'Microsoft Aria', 'Microsoft Jenny'];
-    voice =
+    // Fallback voice: prefer the higher-quality downloadable voices if present.
+    const quality = v => (/premium/i.test(v.name) ? 2 : /enhanced|neural|natural/i.test(v.name) ? 1 : 0);
+    const best = voices.filter(v => v.lang === 'en-US' && quality(v) > 0).sort((a, b) => quality(b) - quality(a))[0];
+    const preferred = ['Ava', 'Zoe', 'Samantha', 'Google US English', 'Microsoft Aria', 'Microsoft Jenny'];
+    voice = best ||
       preferred.map(n => voices.find(v => v.name.includes(n))).find(Boolean) ||
       voices.find(v => v.lang === 'en-US' && v.localService) ||
       voices.find(v => v.lang === 'en-US') ||
@@ -46,18 +81,18 @@ window.Sound = (() => {
     speechSynthesis.addEventListener?.('voiceschanged', pickVoice);
   }
 
+  // ---- built-in speech (fallback) -------------------------------------------
   let speakTimer = null;
-  function say(text, { rate = 0.9, pitch = 1.15 } = {}) {
+  function speakBuiltIn(text) {
     if (!hasSpeech || !text) return;
-    clearTimeout(speakTimer);
     const wasBusy = speechSynthesis.speaking || speechSynthesis.pending;
     speechSynthesis.cancel();
     const go = () => {
       const u = new SpeechSynthesisUtterance(text);
       if (voice) u.voice = voice;
       u.lang = (voice && voice.lang) || 'en-US';
-      u.rate = rate;
-      u.pitch = pitch;
+      u.rate = 0.95;
+      u.pitch = 1; // raising the pitch is what made it sound robotic
       speechSynthesis.speak(u);
     };
     // Safari sometimes drops an utterance queued right after cancel().
@@ -65,8 +100,46 @@ window.Sound = (() => {
     else go();
   }
 
+  // ---- say(): recorded clips first, built-in voice as fallback ---------------
+  let sayToken = 0;
+  let playing = [];
+
+  function stopClips() {
+    playing.forEach(src => { try { src.stop(); } catch { /* already stopped */ } });
+    playing = [];
+  }
+
+  /**
+   * Speak a line. `line` is a string or an array of strings that are played
+   * back to back with a short natural pause between them.
+   */
+  function say(line) {
+    const parts = [].concat(line).filter(Boolean);
+    if (!parts.length) return;
+    hush();
+    const token = sayToken;
+    const recorded = ctx && manifest && parts.every(p => manifest[p]);
+    if (!recorded) { speakBuiltIn(parts.join(' ')); return; }
+
+    if (ctx.state === 'suspended') ctx.resume();
+    Promise.all(parts.map(loadClip)).then(buffers => {
+      if (token !== sayToken) return; // something newer was said meanwhile
+      let t = ctx.currentTime + 0.03;
+      buffers.forEach(buf => {
+        const src = ctx.createBufferSource();
+        src.buffer = buf;
+        src.connect(voiceOut);
+        src.start(t);
+        playing.push(src);
+        t += buf.duration + 0.15;
+      });
+    }).catch(() => { if (token === sayToken) speakBuiltIn(parts.join(' ')); });
+  }
+
   function hush() {
+    sayToken++;
     clearTimeout(speakTimer);
+    stopClips();
     if (hasSpeech) speechSynthesis.cancel();
   }
 

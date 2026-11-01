@@ -1,6 +1,6 @@
 // Offline support: serve from cache, refresh the cache in the background.
 // Bump VERSION when you change files so iPads pick up the update.
-const VERSION = 'learning-garage-v2';
+const VERSION = 'learning-garage-v3';
 const ASSETS = [
   './',
   'index.html',
@@ -8,6 +8,8 @@ const ASSETS = [
   'js/audio.js',
   'js/art.js',
   'js/data.js',
+  'js/lines.js',
+  'js/motion.js',
   'js/app.js',
   'manifest.webmanifest',
   'icons/icon.svg',
@@ -15,10 +17,25 @@ const ASSETS = [
   'icons/icon-512.png',
   'icons/apple-touch-icon.png',
   'fonts/fredoka-latin.woff2',
+  'voice/manifest.json',
 ];
 
+// Also download every recorded voice clip listed in voice/manifest.json,
+// so the natural voice works offline too.
+async function precache() {
+  const cache = await caches.open(VERSION);
+  await cache.addAll(ASSETS);
+  try {
+    const manifest = await (await fetch('voice/manifest.json')).json();
+    const clips = [...new Set(Object.values(manifest.clips || {}))].map(f => `voice/${f}`);
+    await cache.addAll(clips);
+  } catch (e) {
+    // No recordings: the app falls back to the built-in voice.
+  }
+}
+
 self.addEventListener('install', event => {
-  event.waitUntil(caches.open(VERSION).then(c => c.addAll(ASSETS)).then(() => self.skipWaiting()));
+  event.waitUntil(precache().then(() => self.skipWaiting()));
 });
 
 self.addEventListener('activate', event => {

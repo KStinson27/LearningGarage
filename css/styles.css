@@ -90,6 +90,7 @@ button:focus-visible { outline: 5px solid var(--blue); outline-offset: 3px; }
 .art { display: inline-flex; align-items: center; justify-content: center; line-height: 1; }
 .art-svg svg { width: 1.3em; height: auto; display: block; }
 .art-svg.shape svg { width: 1.05em; }
+.stage-art .art-svg svg { overflow: visible; }
 
 /* ---- green highway sign ---- */
 .hwy {
@@ -162,7 +163,6 @@ button:focus-visible { outline: 5px solid var(--blue); outline-offset: 3px; }
   box-shadow: inset 0 0 0 4px var(--sign-green), inset 0 0 0 8px #fff, 0 7px 0 var(--ink);
 }
 .go-btn { animation: pulse 1.4s ease-in-out infinite; }
-.leaving .splash-truck { animation: driveOut .8s ease-in forwards; }
 
 /* ---- home: road signs ---- */
 .home-header {
@@ -228,9 +228,10 @@ button:focus-visible { outline: 5px solid var(--blue); outline-offset: 3px; }
 .traffic { position: absolute; left: 0; right: 0; bottom: 0; height: 0; }
 .traffic-vehicle { position: absolute; left: 0; bottom: calc(var(--scene-h) * .045); will-change: transform; }
 .traffic-vehicle svg { width: 100%; height: auto; display: block; }
-.drive-car { width: calc(var(--scene-h) * .26); animation: traffic 13s linear infinite; }
-.drive-monster { width: calc(var(--scene-h) * .3); bottom: calc(var(--scene-h) * .035); animation: traffic 19s linear -9s infinite; }
-.traffic-vehicle.hop svg { animation: hop .5s ease-out; }
+.drive-car { width: calc(var(--scene-h) * .26); }
+.drive-monster { width: calc(var(--scene-h) * .3); bottom: calc(var(--scene-h) * .035); }
+/* Park traffic off screen until Motion (js/motion.js) starts driving it. */
+.traffic-vehicle { transform: translateX(-200vw); }
 
 /* ---- learn view ---- */
 .learn {
@@ -310,7 +311,6 @@ button:focus-visible { outline: 5px solid var(--blue); outline-offset: 3px; }
   margin-top: -3px;
   background: repeating-linear-gradient(90deg, var(--line) 0 40px, transparent 40px 80px);
 }
-.drive { animation: driveIn .9s cubic-bezier(.2, .8, .3, 1.15) both, bob 1.2s .9s ease-in-out infinite; }
 .pop-in { animation: popIn .5s cubic-bezier(.3, 1.6, .5, 1) both; }
 .pop-in.delay { animation-delay: .25s; }
 
@@ -495,12 +495,10 @@ button:focus-visible { outline: 5px solid var(--blue); outline-offset: 3px; }
   left: 1%;
   bottom: 10%;
   width: min(23%, 220px);
-  transition: transform .4s cubic-bezier(.4, 0, .2, 1);
   z-index: 2;
   pointer-events: none;
 }
-.jumper svg { width: 100%; height: auto; display: block; }
-.jumper.jump { animation: jump .45s ease-out; }
+.count-truck svg { width: 100%; height: auto; display: block; }
 .next-btn { flex: none; }
 
 /* ---- stickers ---- */
@@ -570,17 +568,7 @@ button:focus-visible { outline: 5px solid var(--blue); outline-offset: 3px; }
 @keyframes pulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.07); } }
 @keyframes popIn { 0% { transform: scale(.3); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }
 @keyframes dropIn { 0% { transform: translateY(-150%); opacity: 0; } 100% { transform: none; opacity: 1; } }
-@keyframes driveIn { from { transform: translateX(120vw); } to { transform: none; } }
-@keyframes driveOut { to { transform: translateX(-130vw); } }
-@keyframes traffic { from { transform: translateX(105vw); } to { transform: translateX(-45vw); } }
-@keyframes hop { 0%, 100% { transform: translateY(0); } 40% { transform: translateY(-30%); } }
 @keyframes cloud-drift { from { transform: translateX(-40px); } to { transform: translateX(60px); } }
-@keyframes jump {
-  0% { transform: translateY(0); }
-  45% { transform: translateY(-65%) rotate(-10deg); }
-  80% { transform: translateY(4%) rotate(2deg); }
-  100% { transform: translateY(0); }
-}
 @keyframes wiggle {
   0%, 100% { transform: rotate(0); }
   20% { transform: rotate(-7deg); }

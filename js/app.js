@@ -12,7 +12,7 @@
 
   const { VEHICLES, COLORS, SHAPES, LETTERS, NUMBER_THINGS } = window.DATA;
   const app = document.getElementById('app');
-  const say = (text, opts) => Sound.say(text, opts);
+  const say = line => Sound.say(line);
 
   // ---- small helpers --------------------------------------------------------
   function h(tag, props, ...kids) {
@@ -56,7 +56,6 @@
     for (let i = a.length - 1; i > 0; i--) { const j = rand(i + 1); [a[i], a[j]] = [a[j], a[i]]; }
     return a;
   };
-  const article = word => (/^[aeiou]/i.test(word) ? 'an' : 'a');
   const restart = (el, cls) => { el.classList.remove(cls); void el.offsetWidth; el.classList.add(cls); };
 
   // Timers are tied to the current screen and cleared when you leave it.
@@ -126,7 +125,7 @@
     app.append(overlay);
     Sound.sfx('fanfare');
     confetti(40);
-    say(`You got a sticker! ${article(v.name)} ${v.name}!`);
+    say(Lines.stickerWin(v));
     let done = false;
     later(() => tap(overlay, () => {
       if (done) return;
@@ -159,8 +158,11 @@
       started = true;
       Sound.unlock();
       Sound.sfx('vroom');
-      el.classList.add('leaving');
-      later(() => { go('home'); say("Let's go! What do you want to play?"); }, 900);
+      // Pull away: the truck speeds up (nose lifts) and drives off screen.
+      const truck = el.querySelector('.splash-truck');
+      truck.style.animation = 'none';
+      Motion.vehicle(truck).driveTo(-(window.innerWidth + truck.offsetWidth), { duration: 1100, ease: 'in' });
+      later(() => { go('home'); say(Lines.welcome); }, 1000);
     });
     return el;
   }
@@ -183,7 +185,7 @@
         h('span', { class: 'rs-sign', html: Art.sign(t.id) }),
         h('span', { class: 'rs-post' }),
         h('span', { class: 'rs-label' }, t.label));
-      tap(b, () => { Sound.sfx('pop'); go(t.id); say(t.intro); });
+      tap(b, () => { Sound.sfx('pop'); go(t.id); say(Lines.topic[t.id]); });
       signs.append(b);
     });
 
@@ -191,16 +193,25 @@
       h('span', { html: Art.star(36) }), `${stickerCount()} / ${VEHICLES.length}`);
     tap(counter, () => { Sound.sfx('pop'); go('stickers'); });
 
-    // Vehicles driving along the road. Tap them for a sound!
+    // Vehicles driving along the road (wheels turning, suspension bouncing).
+    // Tap them for a sound!
     const traffic = h('div', { class: 'traffic' });
-    [
-      { art: Art.car('#1e88e5'), cls: 'drive-car', sfx: 'honk', say: 'Beep beep!' },
-      { art: Art.monster('#ff7043'), cls: 'drive-monster', sfx: 'vroom', say: 'Vroom vroom! Monster truck!' },
-    ].forEach(v => {
-      const el = h('button', { class: `traffic-vehicle ${v.cls}`, 'aria-label': 'vehicle', html: v.art });
-      tap(el, () => { Sound.sfx(v.sfx); say(v.say); restart(el, 'hop'); });
+    const drivers = [
+      { art: Art.car('#1e88e5'), cls: 'drive-car', sfx: 'honk', line: Lines.trafficCar, speed: 150, start: 0.15 },
+      { art: Art.monster('#ff7043'), cls: 'drive-monster', sfx: 'vroom', line: Lines.trafficMonster, speed: 105, start: 0.65 },
+    ].map(d => {
+      const el = h('button', { class: `traffic-vehicle ${d.cls}`, 'aria-label': 'vehicle', html: d.art });
+      tap(el, () => { Sound.sfx(d.sfx); say(d.line); Motion.vehicle(el).hop(el.offsetHeight * 0.35); });
       traffic.append(el);
+      return { el, d };
     });
+    // Start driving once the screen is on display (so sizes are known).
+    later(() => drivers.forEach(({ el, d }) => {
+      const w = el.offsetWidth;
+      const from = window.innerWidth + 20;
+      const to = -w - 20;
+      Motion.vehicle(el).cruise({ from, to, speed: d.speed, startAt: to + (from - to) * (1 - d.start) });
+    }), 0);
 
     return h('div', { class: 'screen home-screen' },
       h('header', { class: 'home-header' },
@@ -211,7 +222,7 @@
   }
 
   // ---- generic "Learn" view: big stage on top, tappable picture grid below --
-  function learnView({ items, tile, stage, speak, sfx, hint = '👇 Tap a picture!' }) {
+  function learnView({ items, tile, stage, speak, sfx, onShow, hint = '👇 Tap a picture!' }) {
     const stageEl = h('div', { class: 'stage' }, h('div', { class: 'stage-hint' }, hint));
     const grid = h('div', { class: 'grid' });
     let current = null;
@@ -220,6 +231,7 @@
     function select(item) {
       current = item;
       stageEl.replaceChildren(stage(item));
+      if (onShow) onShow(stageEl, item);
       buttons.forEach(b => b.classList.toggle('sel', b._item === item));
       Sound.sfx(sfx ? sfx(item) : 'pop');
       later(() => say(speak(item)), 150);
@@ -235,6 +247,15 @@
     tap(stageEl, () => { if (current) select(current); });
 
     return h('div', { class: 'learn' }, stageEl, grid);
+  }
+
+  // The stage vehicle drives in from the right and brakes to a stop.
+  function driveIntoStage(stageEl) {
+    const art = stageEl.querySelector('.stage-art');
+    if (!art) return;
+    const v = Motion.vehicle(art);
+    v.place(stageEl.clientWidth);
+    v.driveTo(0, { duration: 1300, ease: 'out' });
   }
 
   // A screen with "Learn" and "Play" tabs.
@@ -257,12 +278,14 @@
   }
 
   // ---- generic "Find the ___" game ----------------------------------------
-  function findGame({ items, art, label, prompt }) {
+  // name/find/thats come from js/lines.js, e.g. "The circle!", "Find the
+  // circle!", "That's the circle." (pieces are recorded separately).
+  function findGame({ items, art, name, find, thats }) {
     const promptEl = h('button', { class: 'prompt press' });
     const choicesEl = h('div', { class: 'choices' });
     let wins = 0, target = null, last = null, locked = false;
 
-    tap(promptEl, () => target && say(prompt(target)));
+    tap(promptEl, () => target && say(find(target)));
 
     function round() {
       locked = false;
@@ -277,8 +300,8 @@
         tap(b, () => choose(item, b));
         return b;
       }));
-      promptEl.replaceChildren(h('span', { class: 'speaker' }, '🔊'), h('span', {}, prompt(target)));
-      say(prompt(target));
+      promptEl.replaceChildren(h('span', { class: 'speaker' }, '🔊'), h('span', {}, find(target)));
+      say(find(target));
     }
 
     function choose(item, b) {
@@ -289,14 +312,13 @@
         b.classList.add('right');
         Sound.sfx('cheer');
         confetti();
-        const praise = pick(['Yes!', 'You found it!', 'Great job!', 'Hooray!', 'You did it!']);
-        say(`${praise} ${label(item)}!`);
+        say([pick(Lines.praise), name(item)]);
         if (wins % 3 === 0) later(() => awardSticker(round), 1700);
         else later(round, 2300);
       } else {
         restart(b, 'wiggle');
         Sound.sfx('boop');
-        say(`That's ${label(item)}. ${prompt(target)}`);
+        say([thats(item), find(target)]);
       }
     }
 
@@ -312,16 +334,15 @@
       stage: v => h('div', { class: 'stage-inner on-road' },
         h('div', { class: 'road' }),
         h('div', { class: 'stage-word' }, v.name),
-        h('div', { class: 'stage-art drive' }, vehicleArt(v))),
-      speak: v => `${v.name}! ${v.says}`,
+        h('div', { class: 'stage-art' }, vehicleArt(v))),
+      onShow: driveIntoStage,
+      speak: Lines.vehicle,
       sfx: v => v.sfx,
       hint: '👇 Tap a truck!',
     })));
   }
 
   // ---- Numbers --------------------------------------------------------------
-  const NUMBER_WORDS = ['zero', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine', 'ten'];
-
   function numbers() {
     return topicScreen({
       title: 'Numbers',
@@ -336,11 +357,7 @@
             h('div', { class: 'num-row' }, Array.from({ length: n }, (_, i) =>
               h('span', { class: 'num-item', style: `animation-delay:${0.25 + i * 0.35}s` }, thing.emoji))));
         },
-        speak: n => {
-          const thing = NUMBER_THINGS[n - 1];
-          const counting = NUMBER_WORDS.slice(1, n + 1).join(', ');
-          return `${NUMBER_WORDS[n]}! ... ${counting}. ${NUMBER_WORDS[n]} ${n === 1 ? thing.one : thing.many}!`;
-        },
+        speak: Lines.numberLearn,
         hint: '👇 Tap a number!',
       }),
       play: countGame,
@@ -367,8 +384,9 @@
       numEl.textContent = '?';
       dotsEl.replaceChildren(...Array.from({ length: n }, () => h('span', { class: 'dot' })));
 
-      const jumper = h('div', { class: 'jumper', html: Art.monster('#e53935') });
-      const truck = h('div', { class: 'count-truck' }, jumper);
+      // The truck art faces left; flip it to face the cars on the right.
+      const truck = h('div', { class: 'count-truck', html: Art.monster('#e53935') });
+      const driver = Motion.vehicle(truck, { flip: true });
       const lane = h('div', { class: 'count-cars' });
       const colors = shuffle(COLORS.filter(c => c.id !== 'red'));
       for (let i = 0; i < n; i++) {
@@ -382,9 +400,7 @@
       }
       road.replaceChildren(lane, truck);
 
-      say(first
-        ? "Let's count the cars! Tap each car, and the monster truck will crush it!"
-        : pick(["Let's count the cars!", 'How many cars? Tap and count!', 'More cars! Let\'s count!']));
+      say(first ? Lines.countFirst : pick(Lines.countAgain));
       first = false;
 
       function hit(car) {
@@ -392,19 +408,20 @@
         car.classList.add('hit');
         counted++;
 
-        // Jump the truck onto this car.
+        // Drive and jump the truck onto this car; crush it on landing.
         const rr = road.getBoundingClientRect();
         const cr = car.getBoundingClientRect();
         const x = cr.left - rr.left + cr.width / 2 - truck.offsetLeft - truck.offsetWidth / 2;
-        truck.style.transform = `translateX(${x}px)`;
-        restart(jumper, 'jump');
         Sound.sfx('boing');
-        later(() => { car.classList.add('squash'); Sound.sfx('crunch'); }, 280);
+        driver.driveTo(x, { duration: 650, ease: 'inOut', arc: truck.offsetHeight * 0.55 }).then(() => {
+          car.classList.add('squash');
+          Sound.sfx('crunch');
+        });
 
         numEl.textContent = counted;
         restart(numEl, 'bump');
         dotsEl.children[counted - 1].classList.add('on');
-        say(NUMBER_WORDS[counted], { rate: 0.85, pitch: 1.2 });
+        say(Lines.count(counted));
 
         if (counted === n) {
           rounds++;
@@ -412,12 +429,12 @@
             numEl.classList.add('win');
             Sound.sfx('cheer');
             confetti();
-            say(`${NUMBER_WORDS[n]} ${n === 1 ? 'car' : 'cars'}! Great counting!`);
+            say(Lines.countDone(n));
           }, 850);
           if (rounds % 2 === 0) max = Math.min(10, max + 1); // slowly count higher
           const showNext = () => nextBtn.classList.remove('hidden');
-          if (rounds % 2 === 0) later(() => awardSticker(showNext), 2900);
-          else later(showNext, 2200);
+          if (rounds % 2 === 0) later(() => awardSticker(showNext), 3200);
+          else later(showNext, 2500);
         }
       }
     }
@@ -440,14 +457,15 @@
         stage: s => h('div', { class: 'stage-inner' },
           h('div', { class: 'stage-art pop-in' }, shapeArt(s)),
           h('div', { class: 'stage-word' }, s.name)),
-        speak: s => `${s.name}! ${s.tip}`,
+        speak: Lines.shape,
         hint: '👇 Tap a shape!',
       }),
       play: () => findGame({
         items: SHAPES,
         art: shapeArt,
-        label: s => `the ${s.name}`,
-        prompt: s => `Find the ${s.name}!`,
+        name: Lines.shapeName,
+        find: Lines.shapeFind,
+        thats: Lines.shapeThats,
       }),
     });
   }
@@ -462,16 +480,18 @@
         stage: c => h('div', { class: 'stage-inner on-road' },
           h('div', { class: 'road' }),
           h('div', { class: 'stage-word', style: `background:${c.hex};color:${c.ink}` }, c.name),
-          h('div', { class: 'stage-art drive' }, h('span', { class: 'art art-svg', html: Art.monster(c.hex) }))),
-        speak: c => `${c.name}! ${article(c.name)} ${c.name} monster truck!`,
+          h('div', { class: 'stage-art' }, h('span', { class: 'art art-svg', html: Art.monster(c.hex) }))),
+        onShow: driveIntoStage,
+        speak: Lines.color,
         sfx: () => 'vroom',
         hint: '👇 Tap a color!',
       }),
       play: () => findGame({
-        items: COLORS.slice(0, 8), // skip the trickier black/white/brown at first
+        items: Lines.FIND_COLORS, // skips the trickier black/white/brown
         art: c => h('span', { class: 'art art-svg', html: Art.car(c.hex) }),
-        label: c => `the ${c.name} car`,
-        prompt: c => `Find the ${c.name} car!`,
+        name: Lines.colorName,
+        find: Lines.colorFind,
+        thats: Lines.colorThats,
       }),
     });
   }
@@ -499,14 +519,15 @@
             h('div', { class: 'stage-letter pop-in' }, L.l, h('small', {}, L.l.toLowerCase())),
             h('div', { class: 'stage-art pop-in delay' }, letterArt(L))),
           word(L)),
-        speak: L => L.speak || `${L.l}! ${L.l} is for ${L.word}!`,
+        speak: Lines.letter,
         hint: '👇 Tap a letter!',
       }),
       play: () => findGame({
-        items: LETTERS.slice(0, 8),
+        items: Lines.FIND_LETTERS,
         art: L => h('span', { class: 'tile-letter big' }, L.l),
-        label: L => `${L.l}`,
-        prompt: L => `Find the letter ${L.l}!`,
+        name: Lines.letterName,
+        find: Lines.letterFind,
+        thats: Lines.letterThats,
       }),
     });
   }
@@ -522,8 +543,8 @@
         vehicleArt(v),
         data[v.id] > 1 ? h('span', { class: 'badge' }, `×${data[v.id]}`) : null);
       tap(b, () => {
-        if (owned) { restart(b, 'wiggle'); Sound.sfx(v.sfx); say(`${v.name}! ${v.says}`); }
-        else { Sound.sfx('boop'); say('Keep playing to win this sticker!'); }
+        if (owned) { restart(b, 'wiggle'); Sound.sfx(v.sfx); say(Lines.vehicle(v)); }
+        else { Sound.sfx('boop'); say(Lines.stickerLocked); }
       });
       grid.append(b);
     });
@@ -537,9 +558,7 @@
     ['pointerup', 'pointercancel', 'pointerleave'].forEach(ev =>
       reset.addEventListener(ev, () => clearTimeout(holdTimer)));
 
-    later(() => say(got
-      ? `You have ${got} ${got === 1 ? 'sticker' : 'stickers'}! Great job!`
-      : 'Play games to win stickers!'), 600);
+    later(() => say(Lines.stickerCount(got)), 600);
 
     return h('div', { class: 'screen' },
       header(`Stickers ${got}/${VEHICLES.length}`),
